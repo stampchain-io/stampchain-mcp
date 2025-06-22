@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false,
+    "noEmit": false
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/__tests__/**/*", "scripts/**/*", "vitest.config.ts"]
+}

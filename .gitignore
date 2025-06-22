@@ -1,0 +1,90 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.npm/
+.yarn/
+.pnp.*
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# Dependency directories
+
+# Environment variables
+.env
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Development documentation
+docs/
+
+# Development setup files
+claude-desktop-config.json
+mcp.json
+.mcp/
+.roomodes
+.windsurfrules
+
+# Scripts directory (development tools)
+scripts/
+
+# IDE-specific directories (development only)
+.claude/
+.cursor/
+.roo/
+.roo*
+
+# All other hidden directories except essential ones
+.*
+!.github/
+!.gitignore
+!.husky/
+
+# Taskmaster directories
+.taskmaster/
+
+# Development environment
+.env.development
+.env.test
+
+# IDE project files
+*.code-workspace
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Local configuration overrides
+*.local
+*.local.json
+*.local.js
+
+# Development logs
+dev-*.log
+debug.log
