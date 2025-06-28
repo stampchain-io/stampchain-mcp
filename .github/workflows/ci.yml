@@ -12,7 +12,7 @@ on:
     # Allow manual triggers
 
 jobs:
-  test:
+  test-typescript:
     name: Test Node ${{ matrix.node-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     
@@ -35,15 +35,41 @@ jobs:
         
     - name: Install dependencies
       run: npm ci
+      working-directory: stampchain-mcp
       
     - name: Run TypeScript type checking
       run: npm run typecheck
+      working-directory: stampchain-mcp
       
     - name: Build project
       run: npm run build
+      working-directory: stampchain-mcp
       
     - name: Run tests
       run: npm test
+      working-directory: stampchain-mcp
       
     - name: Validate API schema alignment
       run: npm run validate-schema
+      working-directory: stampchain-mcp
+
+  build-and-test-rust:
+    name: Build and Test Rust
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Build Rust workspace
+      run: cargo build --workspace
+
+    - name: Run Rust tests
+      run: cargo test --workspace

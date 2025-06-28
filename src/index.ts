@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Command } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createLogger } from './utils/index.js';
@@ -9,13 +10,25 @@ import { loadConfiguration, type ServerConfig } from './config/index.js';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createTokenTools } from './tools/tokens.js';
+import { createStampTools } from './tools/stamps.js';
+import { createCollectionTools } from './tools/collections.js';
 
 // Get current directory in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Package information
-const packageJson = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
+// Package information - Try both locations for package.json
+let packageJson: any;
+try {
+  packageJson = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
+} catch {
+  try {
+    packageJson = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8'));
+  } catch {
+    packageJson = { version: '0.1.0', name: 'stampchain-mcp' };
+  }
+}
 
 let logger = createLogger('main');
 let config: ServerConfig;
@@ -169,6 +182,18 @@ async function main(): Promise<void> {
 }
 
 /**
+ * Create API client for CLI commands
+ */
+function createApiClient(options: any = {}): StampchainClient {
+  return new StampchainClient({
+    baseURL: options.apiUrl || process.env.STAMPCHAIN_API_URL || 'https://stampchain.io/api/v2',
+    timeout: options.timeout || 30000,
+    retries: 3,
+    retryDelay: 1000,
+  });
+}
+
+/**
  * CLI Program setup
  */
 const program = new Command();
@@ -254,6 +279,187 @@ program
       console.log(`\nTotal: ${toolRegistry.getStats().totalTools} tools`);
     } catch (error) {
       console.error('Error listing tools:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Add token commands
+const tokenCmd = program
+  .command('token')
+  .description('Query SRC-20 token information')
+  .option('--api-url <url>', 'Stampchain API base URL');
+
+tokenCmd
+  .command('info <ticker>')
+  .description('Get detailed information about a specific SRC-20 token')
+  .option('--include-holders', 'Include holder statistics')
+  .option('--include-transfers', 'Include recent transfer data')
+  .action(async (ticker, options, command) => {
+    try {
+      const apiClient = createApiClient(command.parent.opts());
+      const tokenTools = createTokenTools(apiClient);
+      
+      const result = await tokenTools.get_token_info.execute({
+        tick: ticker,
+        include_holders: options.includeHolders || false,
+        include_transfers: options.includeTransfers || false,
+      });
+      
+      // Print all text content from the response
+      if (result.content) {
+        for (const content of result.content) {
+          if (content.type === 'text') {
+            console.log(content.text);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching token info:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+tokenCmd
+  .command('search [query]')
+  .description('Search for SRC-20 tokens')
+  .option('--deployer <address>', 'Filter by deployer address')
+  .option('--min-holders <number>', 'Minimum number of holders', parseInt)
+  .option('--min-percent-minted <number>', 'Minimum percent minted', parseFloat)
+  .option('--sort-by <field>', 'Sort field', 'deploy_timestamp')
+  .option('--sort-order <order>', 'Sort order (ASC|DESC)', 'DESC')
+  .option('--page <number>', 'Page number', parseInt, 1)
+  .option('--page-size <number>', 'Items per page', parseInt, 20)
+  .action(async (query, options, command) => {
+    try {
+      const apiClient = createApiClient(command.parent.opts());
+      const tokenTools = createTokenTools(apiClient);
+      
+      const result = await tokenTools.search_tokens.execute({
+        query,
+        deployer: options.deployer,
+        min_holders: options.minHolders,
+        min_percent_minted: options.minPercentMinted,
+        sort_by: options.sortBy,
+        sort_order: options.sortOrder,
+        page: options.page,
+        page_size: options.pageSize,
+      });
+      
+      // Print all text content from the response
+      if (result.content) {
+        for (const content of result.content) {
+          if (content.type === 'text') {
+            console.log(content.text);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error searching tokens:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Add stamp commands
+const stampCmd = program
+  .command('stamp')
+  .description('Query Bitcoin stamp information')
+  .option('--api-url <url>', 'Stampchain API base URL');
+
+stampCmd
+  .command('get <id>')
+  .description('Get detailed information about a specific stamp')
+  .option('--include-base64', 'Include base64 image data')
+  .action(async (id, options, command) => {
+    try {
+      const apiClient = createApiClient(command.parent.opts());
+      const stampTools = createStampTools(apiClient);
+      
+      const result = await stampTools.get_stamp.execute({
+        stamp_id: id,
+        include_base64: options.includeBase64 || false,
+      });
+      
+      // Print all text content from the response
+      if (result.content) {
+        for (const content of result.content) {
+          if (content.type === 'text') {
+            console.log(content.text);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching stamp:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+stampCmd
+  .command('search [query]')
+  .description('Search for stamps')
+  .option('--creator <address>', 'Filter by creator address')
+  .option('--collection-id <id>', 'Filter by collection ID')
+  .option('--cpid <cpid>', 'Filter by CPID')
+  .option('--btc-stamp', 'Filter for BTC stamps only')
+  .option('--cursed', 'Filter for cursed stamps only')
+  .option('--sort-order <order>', 'Sort order (ASC|DESC)', 'DESC')
+  .option('--page <number>', 'Page number', parseInt, 1)
+  .option('--page-size <number>', 'Items per page', parseInt, 20)
+  .action(async (query, options, command) => {
+    try {
+      const apiClient = createApiClient(command.parent.opts());
+      const stampTools = createStampTools(apiClient);
+      
+      const result = await stampTools.search_stamps.execute({
+        query,
+        creator: options.creator,
+        collection_id: options.collectionId,
+        cpid: options.cpid,
+        is_btc_stamp: options.btcStamp,
+        is_cursed: options.cursed,
+        sort_order: options.sortOrder,
+        page: options.page,
+        page_size: options.pageSize,
+      });
+      
+      // Print all text content from the response
+      if (result.content) {
+        for (const content of result.content) {
+          if (content.type === 'text') {
+            console.log(content.text);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error searching stamps:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+stampCmd
+  .command('recent')
+  .description('Get recently created stamps')
+  .option('--limit <number>', 'Number of stamps to retrieve', parseInt, 10)
+  .option('--include-cursed', 'Include cursed stamps')
+  .action(async (options, command) => {
+    try {
+      const apiClient = createApiClient(command.parent.opts());
+      const stampTools = createStampTools(apiClient);
+      
+      const result = await stampTools.get_recent_stamps.execute({
+        limit: options.limit,
+        include_cursed: options.includeCursed !== false,
+      });
+      
+      // Print all text content from the response
+      if (result.content) {
+        for (const content of result.content) {
+          if (content.type === 'text') {
+            console.log(content.text);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching recent stamps:', error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   });
