@@ -2,12 +2,39 @@
 
 A Model Context Protocol (MCP) server for interacting with Bitcoin Stamps data via the Stampchain API. This server provides tools for querying stamp information, collections, and blockchain data without requiring API authentication.
 
+## 🆕 **NEW: Direct CLI Commands**
+
+You can now query tokens and stamps directly from the command line without needing to run the full MCP server!
+
+### 🚀 Quick Examples
+
+```bash
+# Query a specific token
+npm run start token info DEFAI
+
+# Search for tokens
+npm run start token search --page-size 20
+
+# Get stamp information
+npm run start stamp get 12345
+
+# Search for stamps
+npm run start stamp search --creator bc1q...
+
+# Get recent stamps
+npm run start stamp recent --limit 5
+```
+
 ## 📋 Table of Contents
 
 - [🚀 Quick Start](#-quick-start)
   - [Prerequisites](#prerequisites)
   - [One-Line Install](#one-line-install-recommended)
   - [Manual Installation](#manual-installation)
+- [🔧 CLI Commands](#-cli-commands)
+  - [Token Commands](#-token-commands)
+  - [Stamp Commands](#-stamp-commands)
+  - [Server Commands](#-server-commands)
 - [⚙️ IDE Configuration](#️-ide-configuration)
   - [Claude Desktop](#claude-desktop)
   - [Cursor IDE](#cursor-ide)
@@ -43,14 +70,15 @@ A Model Context Protocol (MCP) server for interacting with Bitcoin Stamps data v
 - **🪙 Token Information**: Access SRC-20 token deployment and minting data
 - **🤖 AI-Powered Integration**: Generate code and get development assistance
 - **📡 Real-time Data**: Access live Stampchain API data through your IDE
+- **⚡ Direct CLI Access**: Query data directly from command line without IDE setup
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18.0 or higher
+- Node.js 18.0 or higher (Node.js 20+ recommended for best compatibility)
 - npm or yarn package manager
-- Claude Desktop, Cursor, Windsurf, or Claude Code IDE
+- Claude Desktop, Cursor, Windsurf, or Claude Code IDE (for MCP server mode)
 
 ### Installation
 
@@ -64,7 +92,7 @@ git clone https://github.com/stampchain-io/stampchain-mcp && cd stampchain-mcp &
 This will:
 1. Install all dependencies
 2. Build the project
-3. Automatically configure Claude Desktop (if installed)
+3. Set up Claude Desktop configuration
 
 #### Manual Installation
 
@@ -79,7 +107,8 @@ npm install
 # Build the project
 npm run build
 
-# Configure your IDE (see IDE Configuration section below)
+# Set up Claude Desktop (optional)
+npm run setup:claude
 ```
 
 #### For Development
@@ -87,6 +116,85 @@ npm run build
 ```bash
 # Run in development mode with hot reload
 npm run dev
+```
+
+## 🔧 CLI Commands
+
+### Token Commands
+
+Query SRC-20 token information directly from the command line:
+
+```bash
+# Get detailed information about a specific token
+npm run start token info <TICKER>
+npm run start token info DEFAI
+
+# Get token info with additional data
+npm run start token info DEFAI --include-holders --include-transfers
+
+# Search for tokens
+npm run start token search [QUERY]
+npm run start token search
+
+# Search with filters
+npm run start token search --deployer bc1q... --page-size 10
+npm run start token search --sort-order ASC --page 2
+```
+
+### Stamp Commands
+
+Query Bitcoin stamp information:
+
+```bash
+# Get detailed information about a specific stamp
+npm run start stamp get <STAMP_ID>
+npm run start stamp get 12345
+
+# Include base64 image data
+npm run start stamp get 12345 --include-base64
+
+# Search for stamps
+npm run start stamp search [QUERY]
+npm run start stamp search
+
+# Search with filters
+npm run start stamp search --creator bc1q... --cursed
+npm run start stamp search --collection-id ABC123 --page-size 5
+
+# Get recent stamps
+npm run start stamp recent
+npm run start stamp recent --limit 20 --include-cursed
+```
+
+### Server Commands
+
+Manage the MCP server:
+
+```bash
+# Start the MCP server (for IDE integration)
+npm run start
+
+# List available tools
+npm run start tools
+
+# Show version information
+npm run start version
+
+# Export current configuration
+npm run start --export-config
+```
+
+### Global CLI Usage (Optional)
+
+After installing globally, you can use the CLI anywhere:
+
+```bash
+# Install globally
+npm install -g .
+
+# Use from anywhere
+mcp token info DEFAI
+stampchain-mcp stamp get 12345
 ```
 
 ## ⚙️ IDE Configuration
@@ -222,7 +330,7 @@ Or add to your workspace `.vscode/settings.json`:
 }
 ```
 
-#### Universal MCP Configuration
+#### Universal MCP Config
 
 For IDEs that support standard MCP configuration, create an `mcp.json` file in your project root:
 
