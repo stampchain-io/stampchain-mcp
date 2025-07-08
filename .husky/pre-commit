@@ -1,1 +1,1 @@
-npm run validate-schema && npm run build
+npm run validate && npm run build
