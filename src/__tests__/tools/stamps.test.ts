@@ -247,6 +247,9 @@ describe('Stamps Tools', () => {
     });
   });
 
+  // Note: v2.3 tools (GetRecentSalesTool, GetMarketDataTool, GetStampMarketDataTool)
+  // are tested in integration tests but skipped here due to mock API client limitations
+
   describe('Tool Integration', () => {
     it('should work together for stamp discovery workflow', async () => {
       // First, get recent stamps
