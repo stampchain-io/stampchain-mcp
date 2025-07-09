@@ -1,9 +1,8 @@
 # Stampchain MCP Server
 
 A Model Context Protocol (MCP) server for interacting with Bitcoin Stamps and
-SRC-20 token data via the Stampchain API. This server provides Claude Desktop
-and other MCP clients with tools to query Bitcoin Stamps, collections, and
-SRC-20 tokens.
+SRC-20 token data via the Stampchain API. This server provides MCP-compatible
+clients with tools to query Bitcoin Stamps, collections, and SRC-20 tokens.
 
 ## Features
 
@@ -45,7 +44,9 @@ SRC-20 tokens.
    npm run start
    ```
 
-### Claude Desktop Integration
+### MCP Client Integration
+
+#### Claude Desktop
 
 To use with Claude Desktop, add the following to your
 `claude_desktop_config.json`:
@@ -79,6 +80,12 @@ For easier setup without local installation:
 
 _Note: Replace `/path/to/stampchain-mcp` with the actual path to your
 installation directory._
+
+#### Other MCP Clients
+
+This server implements the standard MCP protocol and can be used with any
+MCP-compatible client. Refer to your client's documentation for specific
+configuration instructions. The server accepts connections via stdio transport.
 
 ## Available Tools
 
@@ -223,7 +230,7 @@ All tools return structured data with:
 
 1. **Build Errors**: Ensure you have Node.js 18+ and run `npm install` first
 2. **Connection Issues**: Check that the Stampchain API is accessible
-3. **Claude Desktop Integration**: Verify the path in your configuration file is
+3. **MCP Client Integration**: Verify the path in your configuration file is
    correct
 
 ### Debugging
@@ -278,5 +285,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - Initial release
 - Basic Bitcoin Stamps, Collections, and SRC-20 tools
-- Claude Desktop integration
+- MCP client integration
 - Comprehensive test suite

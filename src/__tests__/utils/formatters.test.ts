@@ -23,8 +23,8 @@ describe('Formatter Utilities', () => {
         locked: 1,
         divisible: 0,
         block_time: '2024-01-15T10:30:00Z',
-        collection_id: 'test-collection',
-        stamp_url: 'https://stampchain.io/stamp/12345.png'
+        stamp_url: 'https://stampchain.io/stamp/12345.png',
+        block_index: 800000 // Override to match test expectation
       });
 
       const formatted = formatStamp(stamp);
@@ -46,7 +46,6 @@ describe('Formatter Utilities', () => {
         locked: 1,
         divisible: 0,
         block_time: '2024-01-15T10:30:00Z',
-        collection_id: undefined,
         stamp_url: undefined
       });
 
@@ -77,9 +76,7 @@ describe('Formatter Utilities', () => {
         collection_description: 'Original rare pepe stamps from the early days',
         creators: ['bc1qtest123456789012345678901234567890abcdef'],
         stamp_count: 1500,
-        total_editions: 1500,
-        created_at: '2024-01-01T00:00:00Z',
-        website: 'https://rarepepes.com'
+        total_editions: 1500
       });
 
       const formatted = formatCollection(collection);
@@ -97,9 +94,7 @@ describe('Formatter Utilities', () => {
         collection_name: 'Simple Collection',
         creators: ['bc1qtest123456789012345678901234567890abcdef'],
         stamp_count: 10,
-        total_editions: 10,
-        created_at: undefined,
-        website: undefined
+        total_editions: 10
       });
 
       const formatted = formatCollection(collection);

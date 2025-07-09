@@ -3,10 +3,19 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
  * Tests for stamp-related MCP tools
  */
 
-import { GetStampTool, SearchStampsTool, GetRecentStampsTool } from '../../tools/stamps.js';
+import { 
+  GetStampTool, 
+  SearchStampsTool, 
+  GetRecentStampsTool,
+  GetRecentSalesTool,
+  GetMarketDataTool,
+  GetStampMarketDataTool
+} from '../../tools/stamps.js';
 import { 
   createMockToolContext,
   createMockStamp,
+  createMockRecentSalesResponse,
+  createMockStampMarketData,
   expectToThrow
 } from '../utils/test-helpers.js';
 
@@ -31,18 +40,18 @@ describe('Stamps Tools', () => {
     });
 
     it('should execute successfully with valid stamp ID', async () => {
-      const mockStamp = createMockStamp();
+      const mockStamp = createMockStamp({ stamp: 12345 });
       mockContext.apiClient.getStamp.mockResolvedValueOnce(mockStamp);
 
-      const result = await tool.execute({ stamp_id: 12345 }, mockContext);
+      const result = await tool.execute({ stamp_id: 12345, include_base64: false }, mockContext);
 
       expect(mockContext.apiClient.getStamp).toHaveBeenCalledWith(12345);
       expect(result.content).toHaveLength(2);
       expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toContain('Stamp #12345');
-      expect(result.content[0].text).toContain(mockStamp.creator);
+      expect((result.content[0] as any).text).toContain('Stamp #12345');
+      expect((result.content[0] as any).text).toContain(mockStamp.creator);
       expect(result.content[1].type).toBe('text');
-      expect(result.content[1].text).toContain('"stamp": 12345');
+      expect((result.content[1] as any).text).toContain('"stamp": 12345');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -59,13 +68,13 @@ describe('Stamps Tools', () => {
 
     it('should validate input parameters', async () => {
       await expectToThrow(
-        () => tool.execute({ stamp_id: -1 }, mockContext),
-        'Validation failed'
+        () => tool.execute({ stamp_id: -1, include_base64: false }, mockContext),
+        'stamp_id must be a positive number'
       );
 
       await expectToThrow(
-        () => tool.execute({ stamp_id: 'invalid' as any }, mockContext),
-        'Validation failed'
+        () => tool.execute({ stamp_id: 'invalid' as any, include_base64: false }, mockContext),
+        'stamp_id must be a positive number'
       );
     });
 
@@ -191,8 +200,7 @@ describe('Stamps Tools', () => {
       expect(mockContext.apiClient.searchStamps).toHaveBeenCalledWith({
         sort_order: 'DESC',
         page: 1,
-        page_size: 10,
-        is_cursed: undefined
+        page_size: 20, // Updated to match the new default
       });
       expect(result.content[0].text).toContain('10 Most Recent Stamps');
       expect(result.content[0].text).toContain('Stamp #12345');

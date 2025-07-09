@@ -23,6 +23,11 @@ describe('StampchainClient', () => {
       request: { use: ReturnType<typeof vi.fn> };
       response: { use: ReturnType<typeof vi.fn> };
     };
+    defaults: {
+      headers: Record<string, string>;
+      baseURL: string;
+      timeout: number;
+    };
   };
 
   beforeEach(() => {
@@ -36,6 +41,11 @@ describe('StampchainClient', () => {
       interceptors: {
         request: { use: vi.fn() },
         response: { use: vi.fn() },
+      },
+      defaults: {
+        headers: {},
+        baseURL: 'https://test.stampchain.io/api',
+        timeout: 5000,
       },
     };
     
@@ -57,6 +67,7 @@ describe('StampchainClient', () => {
     it('should create client with default configuration', () => {
       const defaultClient = new StampchainClient();
       expect(defaultClient).toBeInstanceOf(StampchainClient);
+      expect(defaultClient.getApiVersion()).toBe('2.3');
     });
 
     it('should create client with custom configuration', () => {
@@ -65,8 +76,10 @@ describe('StampchainClient', () => {
         timeout: 10000,
         retries: 5,
         retryDelay: 500,
+        apiVersion: '2.2',
       });
       expect(customClient).toBeInstanceOf(StampchainClient);
+      expect(customClient.getApiVersion()).toBe('2.2');
     });
   });
 
@@ -340,6 +353,164 @@ describe('StampchainClient', () => {
       await expect(client.getStamp(12345)).rejects.toMatchObject({
         response: { status: 429 }
       });
+    });
+  });
+
+  describe('API version management', () => {
+    it('should get current API version', () => {
+      expect(client.getApiVersion()).toBe('2.3');
+    });
+
+    it('should set API version', () => {
+      client.setApiVersion('2.2');
+      expect(client.getApiVersion()).toBe('2.2');
+    });
+
+    it('should get available versions', async () => {
+      const mockVersions = {
+        current: '2.3',
+        requestedVersion: '2.3',
+        versions: [
+          { version: '2.3', status: 'current', releaseDate: '2025-01-15' },
+          { version: '2.2', status: 'supported', releaseDate: '2024-06-01' }
+        ]
+      };
+      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockVersions));
+
+      const result = await client.getAvailableVersions();
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/versions');
+      expect(result).toEqual(mockVersions);
+    });
+
+    it('should test version compatibility', async () => {
+      // Mock axios.create for the temporary client in testVersionCompatibility
+      const tempMockInstance = {
+        get: vi.fn().mockResolvedValueOnce(createMockAxiosResponse({ status: 'OK' })),
+      };
+      vi.mocked(axios.create).mockReturnValueOnce(tempMockInstance as never);
+
+      const result = await client.testVersionCompatibility('2.2');
+      expect(result).toBe(true);
+    });
+
+    it('should handle version compatibility failure', async () => {
+      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Version not supported'));
+
+      const result = await client.testVersionCompatibility('2.1');
+      expect(result).toBe(false);
+    });
+
+    it('should get feature availability', () => {
+      const features = client.getFeatureAvailability();
+      expect(features).toEqual({
+        marketData: true,
+        recentSales: true,
+        enhancedFiltering: true,
+        dispenserInfo: true,
+        cacheStatus: true,
+      });
+    });
+
+    it('should get feature availability for older version', () => {
+      client.setApiVersion('2.2');
+      const features = client.getFeatureAvailability();
+      expect(features).toEqual({
+        marketData: false,
+        recentSales: false,
+        enhancedFiltering: false,
+        dispenserInfo: false,
+        cacheStatus: false,
+      });
+    });
+  });
+
+  describe('recent sales (v2.3)', () => {
+    it('should get recent sales data', async () => {
+      const mockSalesData = {
+        data: [
+          {
+            tx_hash: 'abcd1234',
+            block_index: 844755,
+            stamp_id: 12345,
+            price_btc: 0.001,
+            price_usd: 50.00,
+            timestamp: 1704067200,
+            buyer_address: 'bc1qtest123',
+            time_ago: '2h ago'
+          }
+        ],
+        metadata: {
+          dayRange: 30,
+          lastUpdated: 1704067200000,
+          total: 1
+        },
+        last_block: 844755
+      };
+      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockSalesData));
+
+      const result = await client.getRecentSales({ dayRange: 30, fullDetails: true });
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/recentSales', {
+        params: { dayRange: 30, fullDetails: true }
+      });
+      expect(result).toEqual(mockSalesData);
+    });
+
+    it('should handle recent sales with fallback for older API versions', async () => {
+      client.setApiVersion('2.2');
+      const mockStamps = [createMockStamp()];
+      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({ data: mockStamps }));
+
+      const result = await client.getRecentSales({ dayRange: 7 });
+      expect(result.data).toHaveLength(1);
+      expect(result.metadata.dayRange).toBe(7);
+    });
+  });
+
+  describe('market data (v2.3)', () => {
+    it('should get market data', async () => {
+      const mockMarketData = {
+        data: [
+          {
+            floorPrice: 0.001,
+            floorPriceUSD: 50.00,
+            marketCapUSD: 1000000,
+            activityLevel: 'HOT',
+            lastActivityTime: 1704067200,
+            volume24h: 0.5
+          }
+        ],
+        last_block: 844755,
+        page: 1,
+        limit: 20,
+        total: 1
+      };
+      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockMarketData));
+
+      const result = await client.getMarketData({ activity_level: 'HOT' });
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/marketData', {
+        params: { activity_level: 'HOT' }
+      });
+      expect(result).toEqual(mockMarketData);
+    });
+
+    it('should get stamp market data', async () => {
+      const mockStampMarketData = {
+        floorPrice: 0.001,
+        floorPriceUSD: 50.00,
+        marketCapUSD: 100000,
+        activityLevel: 'WARM',
+        lastActivityTime: 1704067200,
+        volume24h: 0.1,
+        lastSaleTxHash: 'abcd1234',
+        lastSaleBuyerAddress: 'bc1qtest123'
+      };
+      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({
+        data: mockStampMarketData
+      }));
+
+      const result = await client.getStampMarketData(12345);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/12345/marketData');
+      expect(result).toEqual(mockStampMarketData);
     });
   });
 });

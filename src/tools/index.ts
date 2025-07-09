@@ -46,6 +46,9 @@ export function getAvailableToolNames(): string[] {
     'get_stamp',
     'search_stamps',
     'get_recent_stamps',
+    'get_recent_sales',
+    'get_market_data',
+    'get_stamp_market_data',
     
     // Collection tools
     'get_collection',
@@ -64,7 +67,7 @@ export const toolMetadata = {
   stamps: {
     category: 'Bitcoin Stamps',
     description: 'Tools for querying and searching Bitcoin stamps',
-    tools: ['get_stamp', 'search_stamps', 'get_recent_stamps'],
+    tools: ['get_stamp', 'search_stamps', 'get_recent_stamps', 'get_recent_sales', 'get_market_data', 'get_stamp_market_data'],
   },
   collections: {
     category: 'Stamp Collections',

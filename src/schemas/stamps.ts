@@ -7,7 +7,56 @@ import { z } from 'zod';
 import { BitcoinAddressSchema } from './common.js';
 
 /**
- * Schema for a single stamp (aligned with Stampchain API StampRow model)
+ * Schema for market data object in v2.3 API responses
+ */
+export const MarketDataSchema = z.object({
+  cpid: z.string(),
+  floorPriceBTC: z.number().nullable(),
+  recentSalePriceBTC: z.number().nullable(),
+  openDispensersCount: z.number(),
+  closedDispensersCount: z.number(),
+  totalDispensersCount: z.number(),
+  holderCount: z.number(),
+  uniqueHolderCount: z.number(),
+  topHolderPercentage: z.number(),
+  holderDistributionScore: z.number(),
+  volume24hBTC: z.number(),
+  volume7dBTC: z.number(),
+  volume30dBTC: z.number(),
+  totalVolumeBTC: z.number(),
+  priceSource: z.string(),
+  volumeSources: z.record(z.number()),
+  dataQualityScore: z.number(),
+  confidenceLevel: z.number(),
+  lastUpdated: z.string().datetime(),
+  lastPriceUpdate: z.string().datetime().nullable(),
+  updateFrequencyMinutes: z.number(),
+  lastSaleTxHash: z.string().nullable(),
+  lastSaleBuyerAddress: z.string().nullable(),
+  lastSaleDispenserAddress: z.string().nullable(),
+  lastSaleBtcAmount: z.number().nullable(),
+  lastSaleDispenserTxHash: z.string().nullable(),
+  lastSaleBlockIndex: z.number().nullable(),
+  activityLevel: z.enum(['HOT', 'WARM', 'COOL', 'DORMANT', 'COLD']),
+  lastActivityTime: z.number().nullable(),
+  floorPriceUSD: z.number().nullable(),
+  recentSalePriceUSD: z.number().nullable(),
+  volume24hUSD: z.number().nullable(),
+  volume7dUSD: z.number().nullable(),
+  volume30dUSD: z.number().nullable(),
+});
+
+/**
+ * Schema for dispenser info in v2.3 API responses
+ */
+export const DispenserInfoSchema = z.object({
+  openCount: z.number(),
+  closedCount: z.number(),
+  totalCount: z.number(),
+});
+
+/**
+ * Schema for a single stamp (aligned with actual Stampchain API v2.3 response)
  */
 export const StampSchema = z.object({
   stamp: z.number().int().nonnegative().nullable(),
@@ -21,15 +70,30 @@ export const StampSchema = z.object({
   stamp_url: z.string(),
   stamp_mimetype: z.string(),
   supply: z.number().nonnegative().nullable(),
+  block_time: z.string().datetime(),
   tx_hash: z.string(),
   tx_index: z.number().int().nonnegative(),
   ident: z.enum(['STAMP', 'SRC-20', 'SRC-721']),
   stamp_hash: z.string(),
   file_hash: z.string(),
-  stamp_base64: z.string(),
-  floorPrice: z.number().nullable(),
+  stamp_base64: z.string().optional(),
+  // Legacy fields (present in v2.3 for compatibility)
+  floorPrice: z.union([z.number(), z.string()]).nullable(),
   floorPriceUSD: z.number().nullable(),
   marketCapUSD: z.number().nullable(),
+  // v2.3 fields
+  marketData: MarketDataSchema.optional(),
+  cacheStatus: z.enum(['fresh', 'stale', 'expired']).optional(),
+  dispenserInfo: DispenserInfoSchema.optional(),
+});
+
+/**
+ * Schema for stamp list response metadata in v2.3
+ */
+export const StampListMetadataSchema = z.object({
+  btcPrice: z.number(),
+  cacheStatus: z.enum(['fresh', 'stale', 'expired']),
+  source: z.string(),
 });
 
 /**
@@ -43,11 +107,12 @@ export const StampResponseSchema = z.object({
 });
 
 /**
- * Schema for stamp list response from API
+ * Schema for stamp list response from API (v2.3)
  */
 export const StampListResponseSchema = z.object({
   data: z.array(StampSchema),
   last_block: z.number().int().nonnegative(),
+  metadata: StampListMetadataSchema.optional(),
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
   totalPages: z.number().int().nonnegative(),
@@ -83,35 +148,98 @@ export const StampQueryParamsSchema = z.object({
  * Schema for MCP tool parameters when getting a single stamp
  */
 export const GetStampParamsSchema = z.object({
-  stamp_id: z.union([
-    z.number().int().nonnegative(),
-    z.string().regex(/^\d+$/).transform(val => parseInt(val, 10))
-  ]).describe('The ID of the stamp to retrieve'),
-  include_base64: z.boolean().optional().default(false).describe('Whether to include base64 image data'),
+  stamp_id: z.union([z.number(), z.string()])
+    .refine((val) => {
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return !isNaN(num) && num > 0;
+    }, {
+      message: 'stamp_id must be a positive number'
+    })
+    .transform((val) => {
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return num;
+    }),
+  include_base64: z.boolean().optional().default(false),
 });
+
+export type GetStampParams = z.infer<typeof GetStampParamsSchema>;
 
 /**
  * Schema for MCP tool parameters when searching stamps
  */
 export const SearchStampsParamsSchema = z.object({
-  query: z.string().optional().describe('Search query string'),
-  creator: z.string().optional().describe('Filter by creator address'),
-  collection_id: z.string().optional().describe('Filter by collection ID'),
-  cpid: z.string().optional().describe('Filter by CPID'),
-  is_btc_stamp: z.boolean().optional().describe('Filter for BTC stamps only'),
-  is_cursed: z.boolean().optional().describe('Filter for cursed stamps only'),
-  sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC').describe('Sort order by stamp ID'),
-  page: z.number().int().positive().optional().default(1).describe('Page number'),
-  page_size: z.number().int().positive().max(100).optional().default(20).describe('Items per page'),
+  query: z.string().optional(),
+  creator: z.string().optional(),
+  collection_id: z.string().optional(),
+  cpid: z.string().optional(),
+  is_btc_stamp: z.boolean().optional(),
+  is_cursed: z.boolean().optional(),
+  sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
+  page: z.number().int().min(1).optional().default(1),
+  page_size: z.number().int().min(1).max(100).optional().default(20),
+  limit: z.number().int().min(1).max(1000).optional(),
+  // v2.3: New filtering parameters
+  from_timestamp: z.number().int().positive().optional(),
+  to_timestamp: z.number().int().positive().optional(),
+  min_floor_price: z.number().positive().optional(),
+  max_floor_price: z.number().positive().optional(),
+  activity_level: z.enum(['HOT', 'WARM', 'COOL', 'DORMANT', 'COLD']).optional(),
+  include_market_data: z.boolean().optional().default(false),
+  include_dispenser_info: z.boolean().optional().default(false),
 });
+
+export type SearchStampsParams = z.infer<typeof SearchStampsParamsSchema>;
 
 /**
  * Schema for getting recent stamps
  */
 export const GetRecentStampsParamsSchema = z.object({
-  limit: z.number().int().positive().max(100).optional().default(10).describe('Number of recent stamps to retrieve'),
-  include_cursed: z.boolean().optional().default(true).describe('Whether to include cursed stamps'),
+  limit: z.number().int().min(1).max(100).optional().default(20),
 });
+
+export type GetRecentStampsParams = z.infer<typeof GetRecentStampsParamsSchema>;
+
+// v2.3: Recent sales parameters
+export const GetRecentSalesParamsSchema = z.object({
+  stamp_id: z.number().int().positive().optional(),
+  dayRange: z.number().int().min(1).max(365).optional().default(30),
+  fullDetails: z.boolean().optional().default(false),
+  page: z.number().int().min(1).optional().default(1),
+  page_size: z.number().int().min(1).max(100).optional().default(20),
+  sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
+});
+
+export type GetRecentSalesParams = z.infer<typeof GetRecentSalesParamsSchema>;
+
+// v2.3: Market data parameters
+export const GetMarketDataParamsSchema = z.object({
+  stamp_id: z.number().int().positive().optional(),
+  activity_level: z.enum(['HOT', 'WARM', 'COOL', 'DORMANT', 'COLD']).optional(),
+  min_floor_price: z.number().positive().optional(),
+  max_floor_price: z.number().positive().optional(),
+  include_volume_data: z.boolean().optional().default(true),
+  page: z.number().int().min(1).optional().default(1),
+  page_size: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type GetMarketDataParams = z.infer<typeof GetMarketDataParamsSchema>;
+
+// v2.3: Get stamp market data parameters
+export const GetStampMarketDataParamsSchema = z.object({
+  stamp_id: z.union([z.number(), z.string()])
+    .refine((val) => {
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return !isNaN(num) && num > 0;
+    }, {
+      message: 'stamp_id must be a positive number'
+    })
+    .transform((val) => {
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return num;
+    }),
+});
+
+export type GetStampMarketDataParams = z.infer<typeof GetStampMarketDataParamsSchema>;
 
 /**
  * Type exports
@@ -120,9 +248,6 @@ export type Stamp = z.infer<typeof StampSchema>;
 export type StampResponse = z.infer<typeof StampResponseSchema>;
 export type StampListResponse = z.infer<typeof StampListResponseSchema>;
 export type StampQueryParams = z.infer<typeof StampQueryParamsSchema>;
-export type GetStampParams = z.infer<typeof GetStampParamsSchema>;
-export type SearchStampsParams = z.infer<typeof SearchStampsParamsSchema>;
-export type GetRecentStampsParams = z.infer<typeof GetRecentStampsParamsSchema>;
 
 /**
  * Type guards

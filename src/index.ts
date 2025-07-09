@@ -175,7 +175,7 @@ const program = new Command();
 
 program
   .name('stampchain-mcp')
-  .description('Stampchain MCP Server - Bitcoin Stamps and SRC-20 token tools for Claude Desktop')
+  .description('Stampchain MCP Server - Bitcoin Stamps and SRC-20 token tools for MCP-compatible clients')
   .version(packageJson.version);
 
 program
