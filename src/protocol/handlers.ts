@@ -67,7 +67,7 @@ export class ProtocolHandlers {
    */
   handleListTools(_request: ListToolsRequest): Result {
     const timerId = globalPerformanceMonitor.startTimer('protocol_tools/list');
-    
+
     this.logger.debug('Handling list tools request');
 
     try {
@@ -86,7 +86,10 @@ export class ProtocolHandlers {
       return { tools };
     } catch (error) {
       globalPerformanceMonitor.recordRequestRate('tools/list', 'error');
-      globalPerformanceMonitor.endTimer(timerId, { status: 'error', errorType: error instanceof Error ? error.constructor.name : 'Unknown' });
+      globalPerformanceMonitor.endTimer(timerId, {
+        status: 'error',
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+      });
       this.logger.error('Failed to list tools', { error });
       throw new McpError(ErrorCode.InternalError, 'Failed to list available tools');
     }
@@ -105,7 +108,9 @@ export class ProtocolHandlers {
 
     // Start performance timers
     const performanceKey = `tool_execution_${toolName}`;
-    const protocolTimerId = globalPerformanceMonitor.startTimer('protocol_tools/call', { toolName });
+    const protocolTimerId = globalPerformanceMonitor.startTimer('protocol_tools/call', {
+      toolName,
+    });
     this.logger.startTimer(performanceKey);
 
     try {
@@ -149,9 +154,9 @@ export class ProtocolHandlers {
       });
 
       // Record additional performance metrics
-      globalPerformanceMonitor.recordMetric('tool_content_items', result.content.length, { 
+      globalPerformanceMonitor.recordMetric('tool_content_items', result.content.length, {
         toolName,
-        contentItems: result.content.length.toString()
+        contentItems: result.content.length.toString(),
       });
       globalPerformanceMonitor.recordRequestRate('tools/call', 'success');
 

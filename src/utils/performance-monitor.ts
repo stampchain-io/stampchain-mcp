@@ -84,7 +84,7 @@ export class PerformanceMonitor extends EventEmitter {
    */
   startTimer(operation: string, context?: Record<string, any>): string {
     const timerId = `${operation}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     this.timers.set(timerId, {
       startTime: Date.now(),
       operation,
@@ -241,7 +241,7 @@ export class PerformanceMonitor extends EventEmitter {
     context?: Record<string, any>
   ): Promise<T> {
     const timerId = this.startTimer(`tool_execution_${toolName}`, context);
-    
+
     return operation()
       .then((result) => {
         this.endTimer(timerId, { toolName, status: 'success' });
@@ -263,14 +263,19 @@ export class PerformanceMonitor extends EventEmitter {
     context?: Record<string, any>
   ): Promise<T> {
     const timerId = this.startTimer(`api_request_${method}_${endpoint}`, context);
-    
+
     return operation()
       .then((result) => {
         this.endTimer(timerId, { endpoint, method, status: 'success' });
         return result;
       })
       .catch((error) => {
-        this.endTimer(timerId, { endpoint, method, status: 'error', errorType: error.constructor.name });
+        this.endTimer(timerId, {
+          endpoint,
+          method,
+          status: 'error',
+          errorType: error.constructor.name,
+        });
         throw error;
       });
   }
@@ -284,7 +289,7 @@ export class PerformanceMonitor extends EventEmitter {
     context?: Record<string, any>
   ): Promise<T> {
     const timerId = this.startTimer(`protocol_${operation}`, context);
-    
+
     return handler()
       .then((result) => {
         this.endTimer(timerId, { operation, status: 'success' });
@@ -301,7 +306,7 @@ export class PerformanceMonitor extends EventEmitter {
    */
   recordMemoryUsage(): void {
     const memoryUsage = process.memoryUsage();
-    
+
     this.recordMetric('memory_heap_used', memoryUsage.heapUsed);
     this.recordMetric('memory_heap_total', memoryUsage.heapTotal);
     this.recordMetric('memory_rss', memoryUsage.rss);
@@ -316,7 +321,7 @@ export class PerformanceMonitor extends EventEmitter {
       const cpuUsage = process.cpuUsage(this.cpuUsageBaseline);
       this.recordMetric('cpu_user', cpuUsage.user);
       this.recordMetric('cpu_system', cpuUsage.system);
-      
+
       // Update baseline
       this.cpuUsageBaseline = process.cpuUsage();
     }
@@ -396,14 +401,14 @@ export class PerformanceMonitor extends EventEmitter {
       };
 
       this.alerts.push(alert);
-      
+
       // Keep only last 100 alerts
       if (this.alerts.length > 100) {
         this.alerts.shift();
       }
 
       this.emit('alert', alert);
-      
+
       this.logger.warn('Performance threshold exceeded', {
         metric: metric.name,
         level: alertLevel,
@@ -437,8 +442,8 @@ export class PerformanceMonitor extends EventEmitter {
 
     for (const [name, metrics] of this.metrics.entries()) {
       const originalLength = metrics.length;
-      const filtered = metrics.filter(m => m.timestamp.getTime() > cutoffTime);
-      
+      const filtered = metrics.filter((m) => m.timestamp.getTime() > cutoffTime);
+
       if (filtered.length !== originalLength) {
         this.metrics.set(name, filtered);
         totalCleaned += originalLength - filtered.length;
@@ -478,7 +483,7 @@ export function monitorPerformance(metricName?: string) {
         globalPerformanceMonitor.endTimer(timerId, { status: 'success' });
         return result;
       } catch (error) {
-        globalPerformanceMonitor.endTimer(timerId, { 
+        globalPerformanceMonitor.endTimer(timerId, {
           status: 'error',
           errorType: error instanceof Error ? error.constructor.name : 'Unknown',
         });
@@ -500,17 +505,17 @@ export function withPerformanceMonitoring<T extends (...args: any[]) => Promise<
 ): T {
   return (async (...args: any[]) => {
     const timerId = globalPerformanceMonitor.startTimer(metricName, context);
-    
+
     try {
       const result = await operation(...args);
       globalPerformanceMonitor.endTimer(timerId, { status: 'success' });
       return result;
     } catch (error) {
-      globalPerformanceMonitor.endTimer(timerId, { 
+      globalPerformanceMonitor.endTimer(timerId, {
         status: 'error',
         errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       });
       throw error;
     }
   }) as T;
-} 
+}
