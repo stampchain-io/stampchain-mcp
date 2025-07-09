@@ -20,6 +20,37 @@ const gunzip = promisify(zlib.gunzip);
 
 export class RecursiveStampParser {
   private patterns: PatternDefinition[] = [
+    // Core recursive patterns (highest priority)
+    {
+      name: 'Direct Script Loading',
+      regex: /<script\s+src\s*=\s*["']\/s\/[A-Za-z0-9]+["']/,
+      confidence: 0.95,
+      category: 'recursive',
+      description: 'Direct script tag loading from /s/ endpoint',
+    },
+    {
+      name: 'Append Framework Dynamic Loading',
+      regex: /await\s+t\.(js|html)\(\s*\[/,
+      confidence: 0.9,
+      category: 'recursive',
+      description: 'Append framework dynamic loading pattern',
+    },
+    {
+      name: 'Canvas + Recursive',
+      regex: /<canvas[^>]*>[\s\S]*\/s\/[A-Za-z0-9]+/,
+      confidence: 0.85,
+      category: 'recursive',
+      description: 'Canvas graphics with recursive stamp references',
+    },
+    {
+      name: 'HTML Document + Recursive',
+      regex: /<!DOCTYPE\s+html>[\s\S]*\/s\/[A-Za-z0-9]+/,
+      confidence: 0.8,
+      category: 'recursive',
+      description: 'Full HTML document with recursive references',
+    },
+
+    // Framework patterns
     {
       name: 'Append Framework',
       regex: /new\s+Append\(\)/,
@@ -27,47 +58,113 @@ export class RecursiveStampParser {
       category: 'framework',
       description: 'Uses the Append framework for recursive loading',
     },
+
+    // Loading patterns
     {
       name: 'Async Loading Pattern',
       regex: /await\s+t\.(js|html)\(/,
       confidence: 0.8,
-      category: 'pattern',
+      category: 'loading',
       description: 'Asynchronously loads content from other stamps',
-    },
-    {
-      name: 'Error Handling Pattern',
-      regex: /try\s*{[\s\S]*?}\s*catch\s*\(/,
-      confidence: 0.7,
-      category: 'pattern',
-      description: 'Implements error handling for recursive loading',
     },
     {
       name: 'Dynamic Script Loading',
       regex: /document\.createElement\("script"\)/,
       confidence: 0.8,
-      category: 'technique',
+      category: 'loading',
       description: 'Dynamically loads JavaScript from other stamps',
     },
+    {
+      name: 'Deferred Loading',
+      regex: /defer|async\s+src=/,
+      confidence: 0.6,
+      category: 'loading',
+      description: 'Uses deferred or async script loading',
+    },
+
+    // Execution patterns
     {
       name: 'Window OnLoad Handler',
       regex: /window\.onload\s*=/,
       confidence: 0.6,
-      category: 'pattern',
+      category: 'execution',
       description: 'Executes code after window loads',
     },
     {
       name: 'Callback Pattern',
       regex: /appendCB\s*=\s*async\s*\(\)/,
       confidence: 0.7,
-      category: 'pattern',
+      category: 'execution',
       description: 'Uses callback pattern for async operations',
+    },
+
+    // Error handling patterns
+    {
+      name: 'Try-Catch Error Handling',
+      regex: /try\s*{[\s\S]*?}\s*catch\s*\(/,
+      confidence: 0.7,
+      category: 'error_handling',
+      description: 'Implements error handling for recursive loading',
+    },
+    {
+      name: 'Console Error Logging',
+      regex: /console\.(error|warn|log)/,
+      confidence: 0.5,
+      category: 'error_handling',
+      description: 'Uses console logging for debugging',
+    },
+
+    // Composition patterns
+    {
+      name: 'Canvas Graphics',
+      regex: /<canvas[^>]*>|getContext\s*\(\s*["']2d["']\s*\)/,
+      confidence: 0.8,
+      category: 'composition',
+      description: 'Uses HTML5 Canvas for graphics',
+    },
+    {
+      name: 'SVG Graphics',
+      regex: /<svg[^>]*>|SVG/,
+      confidence: 0.8,
+      category: 'composition',
+      description: 'Uses SVG for vector graphics',
     },
     {
       name: 'DOM Manipulation',
-      regex: /document\.(body|head)\.appendChild/,
+      regex: /document\.(body|head)\.appendChild|createElement/,
       confidence: 0.6,
-      category: 'technique',
+      category: 'composition',
       description: 'Dynamically manipulates DOM elements',
+    },
+    {
+      name: 'Event Handling',
+      regex: /addEventListener|onclick|onload/,
+      confidence: 0.5,
+      category: 'composition',
+      description: 'Handles user or system events',
+    },
+
+    // Optimization patterns
+    {
+      name: 'Gzip Compression',
+      regex: /H4sIA|gzip|compress/,
+      confidence: 0.9,
+      category: 'optimization',
+      description: 'Uses gzip compression for data efficiency',
+    },
+    {
+      name: 'Caching Strategy',
+      regex: /cache|localStorage|sessionStorage/,
+      confidence: 0.7,
+      category: 'optimization',
+      description: 'Implements client-side caching',
+    },
+    {
+      name: 'Performance Throttling',
+      regex: /debounce|throttle|requestAnimationFrame/,
+      confidence: 0.8,
+      category: 'optimization',
+      description: 'Uses performance optimization techniques',
     },
   ];
 

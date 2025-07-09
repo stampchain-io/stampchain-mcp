@@ -17,7 +17,18 @@ export const StampDependencySchema = z.object({
 export const DetectedPatternSchema = z.object({
   name: z.string(),
   confidence: z.number().min(0).max(1),
-  category: z.enum(['framework', 'pattern', 'technique', 'library']),
+  category: z.enum([
+    'framework',
+    'pattern',
+    'technique',
+    'library',
+    'recursive',
+    'loading',
+    'execution',
+    'error_handling',
+    'composition',
+    'optimization',
+  ]),
   description: z.string(),
   matches: z.array(z.string()).optional(),
 });
@@ -220,7 +231,17 @@ export interface PatternDefinition {
   name: string;
   regex: RegExp;
   confidence: number;
-  category: 'framework' | 'pattern' | 'technique' | 'library';
+  category:
+    | 'framework'
+    | 'pattern'
+    | 'technique'
+    | 'library'
+    | 'recursive'
+    | 'loading'
+    | 'execution'
+    | 'error_handling'
+    | 'composition'
+    | 'optimization';
   description: string;
 }
 
