@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { Tool as MCPTool } from '@modelcontextprotocol/sdk/types.js';
 import type { Stamp, StampQueryParams } from '../api/types.js';
+import type { Logger } from '../utils/logger.js';
 
 /**
  * Tool response content types matching MCP protocol
@@ -50,12 +51,7 @@ export interface ToolResponse {
  */
 export interface ToolContext {
   /** Logger instance for the tool */
-  logger?: {
-    debug: (message: string, metadata?: Record<string, unknown>) => void;
-    info: (message: string, metadata?: Record<string, unknown>) => void;
-    warn: (message: string, metadata?: Record<string, unknown>) => void;
-    error: (message: string, metadata?: Record<string, unknown>) => void;
-  };
+  logger?: Logger;
   /** API client for making external requests */
   apiClient?: {
     getStamp: (stampId: number) => Promise<Stamp>;

@@ -32,6 +32,8 @@ const COLORS = {
   WARN: '\x1b[33m', // Yellow
   ERROR: '\x1b[31m', // Red
   RESET: '\x1b[0m', // Reset
+  BOLD: '\x1b[1m', // Bold
+  DIM: '\x1b[2m', // Dim
 } as const;
 
 /**
@@ -42,11 +44,22 @@ export interface LogMetadata {
 }
 
 /**
+ * Interface for performance timing data
+ */
+export interface PerformanceData {
+  startTime?: number;
+  duration?: number;
+  operation?: string;
+}
+
+/**
  * Interface for logger configuration
  */
 export interface LoggerConfig {
   level: LogLevel;
   useColors: boolean;
+  enablePerformanceLogging: boolean;
+  maxMetadataDepth: number;
 }
 
 /**
@@ -55,6 +68,7 @@ export interface LoggerConfig {
 export class Logger {
   private config: LoggerConfig;
   private name?: string;
+  private performanceTimers: Map<string, number> = new Map();
 
   /**
    * Creates a new Logger instance
@@ -66,6 +80,8 @@ export class Logger {
     this.config = {
       level: this.getLogLevelFromEnv(),
       useColors: process.env.NO_COLOR !== 'true',
+      enablePerformanceLogging: process.env.NODE_ENV === 'development',
+      maxMetadataDepth: 3,
       ...config,
     };
   }
@@ -83,23 +99,18 @@ export class Logger {
   }
 
   /**
-   * Formats a timestamp for log output
-   * @returns ISO timestamp string
+   * Formats timestamp for log output
+   * @returns Formatted timestamp string
    */
   private formatTimestamp(): string {
-    return new Date().toISOString();
-  }
+    const now = new Date();
+    const timestamp = now.toISOString();
 
-  /**
-   * Formats metadata for log output
-   * @param metadata - Optional metadata object
-   * @returns Formatted metadata string
-   */
-  private formatMetadata(metadata?: LogMetadata): string {
-    if (!metadata || Object.keys(metadata).length === 0) {
-      return '';
+    if (!this.config.useColors) {
+      return timestamp;
     }
-    return ' ' + JSON.stringify(metadata);
+
+    return `${COLORS.DIM}${timestamp}${COLORS.RESET}`;
   }
 
   /**
@@ -114,7 +125,73 @@ export class Logger {
     }
 
     const color = COLORS[levelName as keyof typeof COLORS] || COLORS.RESET;
-    return `${color}[${levelName}]${COLORS.RESET}`;
+    return `${color}${COLORS.BOLD}[${levelName}]${COLORS.RESET}`;
+  }
+
+  /**
+   * Formats metadata for log output with depth control
+   * @param metadata - Optional metadata object
+   * @returns Formatted metadata string
+   */
+  private formatMetadata(metadata?: LogMetadata): string {
+    if (!metadata || Object.keys(metadata).length === 0) {
+      return '';
+    }
+
+    try {
+      // Sanitize and limit depth of metadata
+      const sanitized = this.sanitizeMetadata(metadata, this.config.maxMetadataDepth);
+      const formatted = JSON.stringify(sanitized, null, 2);
+
+      if (!this.config.useColors) {
+        return `\n${formatted}`;
+      }
+
+      return `\n${COLORS.DIM}${formatted}${COLORS.RESET}`;
+    } catch (error) {
+      return `\n[Error formatting metadata: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+    }
+  }
+
+  /**
+   * Sanitizes metadata to prevent logging sensitive information
+   * @param obj - Object to sanitize
+   * @param maxDepth - Maximum depth to traverse
+   * @returns Sanitized object
+   */
+  private sanitizeMetadata(obj: any, maxDepth: number): any {
+    if (maxDepth <= 0) {
+      return '[Max depth reached]';
+    }
+
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.slice(0, 10).map((item) => this.sanitizeMetadata(item, maxDepth - 1));
+    }
+
+    const sensitiveKeys = ['password', 'token', 'key', 'secret', 'auth', 'credential', 'api_key'];
+    const result: any = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      const keyLower = key.toLowerCase();
+
+      if (sensitiveKeys.some((sensitive) => keyLower.includes(sensitive))) {
+        result[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = this.sanitizeMetadata(value, maxDepth - 1);
+      } else {
+        result[key] = value;
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -130,7 +207,7 @@ export class Logger {
 
     const timestamp = this.formatTimestamp();
     const levelStr = this.formatLevel(level);
-    const nameStr = this.name ? ` [${this.name}]` : '';
+    const nameStr = this.name ? ` ${COLORS.BOLD}[${this.name}]${COLORS.RESET}` : '';
     const metadataStr = this.formatMetadata(metadata);
 
     const formattedMessage = `${timestamp} ${levelStr}${nameStr} ${message}${metadataStr}`;
@@ -146,6 +223,39 @@ export class Logger {
         // Using console.log for INFO and DEBUG to avoid ESLint no-console warnings
         // eslint-disable-next-line no-console
         console.log(formattedMessage);
+    }
+  }
+
+  /**
+   * Starts a performance timer
+   * @param operationName - Name of the operation being timed
+   */
+  public startTimer(operationName: string): void {
+    if (this.config.enablePerformanceLogging) {
+      this.performanceTimers.set(operationName, Date.now());
+    }
+  }
+
+  /**
+   * Ends a performance timer and logs the duration
+   * @param operationName - Name of the operation being timed
+   * @param metadata - Optional additional metadata
+   */
+  public endTimer(operationName: string, metadata?: LogMetadata): void {
+    if (!this.config.enablePerformanceLogging) {
+      return;
+    }
+
+    const startTime = this.performanceTimers.get(operationName);
+    if (startTime) {
+      const duration = Date.now() - startTime;
+      this.performanceTimers.delete(operationName);
+
+      this.debug(`Performance: ${operationName} completed`, {
+        duration: `${duration}ms`,
+        operation: operationName,
+        ...metadata,
+      });
     }
   }
 
@@ -186,21 +296,25 @@ export class Logger {
   }
 
   /**
-   * Creates a child logger with a specific name
-   * @param name - Name for the child logger
-   * @returns A new Logger instance
+   * Logs with performance timing information
+   * @param level - Log level
+   * @param message - The message to log
+   * @param operation - Operation name for timing
+   * @param metadata - Optional metadata
    */
-  public child(name: string): Logger {
-    const childName = this.name ? `${this.name}:${name}` : name;
-    return new Logger(childName, this.config);
-  }
+  public withTiming(
+    level: LogLevel,
+    message: string,
+    operation: string,
+    metadata?: LogMetadata
+  ): void {
+    const enhancedMetadata = {
+      ...metadata,
+      operation,
+      timestamp: Date.now(),
+    };
 
-  /**
-   * Updates the logger configuration
-   * @param config - Partial configuration to update
-   */
-  public setConfig(config: Partial<LoggerConfig>): void {
-    this.config = { ...this.config, ...config };
+    this.log(level, message, enhancedMetadata);
   }
 
   /**
@@ -225,6 +339,22 @@ export class Logger {
       this.config.level = level;
     }
   }
+
+  /**
+   * Enables or disables performance logging
+   * @param enabled - Whether to enable performance logging
+   */
+  public setPerformanceLogging(enabled: boolean): void {
+    this.config.enablePerformanceLogging = enabled;
+  }
+
+  /**
+   * Gets logger configuration
+   * @returns Current logger configuration
+   */
+  public getConfig(): LoggerConfig {
+    return { ...this.config };
+  }
 }
 
 /**
@@ -240,6 +370,23 @@ export const logger = new Logger();
  */
 export function createLogger(name: string, config?: { level?: string | LogLevel }): Logger {
   const logger = new Logger(name);
+  if (config?.level) {
+    logger.setLevel(config.level);
+  }
+  return logger;
+}
+
+/**
+ * Creates a logger with performance tracking enabled
+ * @param name - Name for the logger
+ * @param config - Optional logger configuration
+ * @returns A new Logger instance with performance tracking
+ */
+export function createPerformanceLogger(
+  name: string,
+  config?: { level?: string | LogLevel }
+): Logger {
+  const logger = new Logger(name, { enablePerformanceLogging: true });
   if (config?.level) {
     logger.setLevel(config.level);
   }

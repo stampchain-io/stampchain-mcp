@@ -45,6 +45,7 @@ export class StampchainClient {
   private client: AxiosInstance;
   private logger: Logger;
   private apiVersion: string;
+  private requestTimers: Map<string, { startTime: number; requestId: string }> = new Map();
 
   constructor(config?: StampchainClientConfig) {
     const {
@@ -87,13 +88,24 @@ export class StampchainClient {
       },
     });
 
-    // Add request interceptor for logging
+    // Add request interceptor for logging and performance tracking
     this.client.interceptors.request.use(
       (config) => {
+        // Start performance timer for this request
+        const requestId = `${config.method}_${config.url}_${Date.now()}_${Math.random()}`;
+        const startTime = Date.now();
+
+        this.requestTimers.set(requestId, { startTime, requestId });
+        this.logger.startTimer(requestId);
+
+        // Store requestId in headers for retrieval later
+        config.headers['X-Request-ID'] = requestId;
+
         this.logger.debug('Making API request', {
           method: config.method,
           url: config.url,
           params: config.params,
+          requestId,
         });
         return config;
       },
@@ -103,16 +115,52 @@ export class StampchainClient {
       }
     );
 
-    // Add response interceptor for logging and error handling
+    // Add response interceptor for logging, error handling, and performance tracking
     this.client.interceptors.response.use(
       (response) => {
+        const requestId = response.config.headers['X-Request-ID'] as string;
+        const timerData = this.requestTimers.get(requestId);
+
+        if (requestId && timerData) {
+          this.logger.endTimer(requestId, {
+            status: response.status,
+            url: response.config.url,
+            method: response.config.method,
+            dataSize: JSON.stringify(response.data).length,
+          });
+          this.requestTimers.delete(requestId);
+        }
+
         this.logger.debug('API response received', {
           status: response.status,
           url: response.config.url,
+          requestId,
+          duration: timerData ? `${Date.now() - timerData.startTime}ms` : undefined,
         });
         return response;
       },
       (error: AxiosError<APIErrorResponse>) => {
+        const requestId = error.config?.headers?.['X-Request-ID'] as string;
+        const timerData = this.requestTimers.get(requestId);
+
+        if (requestId && timerData) {
+          this.logger.endTimer(requestId, {
+            error: true,
+            status: error.response?.status,
+            url: error.config?.url,
+            method: error.config?.method,
+          });
+          this.requestTimers.delete(requestId);
+        }
+
+        this.logger.error('API request failed', {
+          status: error.response?.status,
+          url: error.config?.url,
+          requestId,
+          duration: timerData ? `${Date.now() - timerData.startTime}ms` : undefined,
+          error: error.message,
+        });
+
         return Promise.reject(this.handleApiError(error));
       }
     );

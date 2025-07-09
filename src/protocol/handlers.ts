@@ -93,11 +93,15 @@ export class ProtocolHandlers {
       hasArgs: !!args,
     });
 
+    // Start performance timer
+    const performanceKey = `tool_execution_${toolName}`;
+    this.logger.startTimer(performanceKey);
+
     try {
       // Get tool from registry (this will throw if tool doesn't exist or is disabled)
       const tool = this.toolRegistry.get(toolName);
 
-      // Create execution context
+      // Create execution context with performance-enabled logger
       const context: ToolContext = {
         logger: createLogger(`tool:${toolName}`, {
           level: this.config.logging.level,
@@ -106,22 +110,45 @@ export class ProtocolHandlers {
         config: this.config,
       };
 
+      // Enable performance logging for tool context logger
+      if (context.logger) {
+        context.logger.setPerformanceLogging(this.config.development.enableDebugLogs);
+      }
+
       // Execute the tool
       const startTime = Date.now();
       const result = await tool.execute(args || {}, context);
       const duration = Date.now() - startTime;
 
+      // End performance timer
+      this.logger.endTimer(performanceKey, {
+        contentItems: result.content.length,
+        hasTextContent: result.content.some((item) => item.type === 'text'),
+        hasImageContent: result.content.some((item) => item.type === 'image'),
+      });
+
       this.logger.info('Tool executed successfully', {
         tool: toolName,
-        duration,
+        duration: `${duration}ms`,
         contentItems: result.content.length,
+        performance: {
+          executionTime: duration,
+          avgResponseTime: duration / result.content.length,
+        },
       });
 
       return result as unknown as Result;
     } catch (error) {
+      // End performance timer even on error
+      this.logger.endTimer(performanceKey, {
+        error: true,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+      });
+
       this.logger.error('Tool execution failed', {
         tool: toolName,
         error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
         ...(this.config.development.enableStackTraces && error instanceof Error
           ? { stack: error.stack }
           : {}),
