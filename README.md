@@ -320,9 +320,17 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Issues**:
   [GitHub Issues](https://github.com/stampchain-io/stampchain-mcp/issues)
 - **Documentation**: [Stampchain API Docs](https://stampchain.io/docs)
-- **Community**: [Discord](https://discord.gg/stampchain)
+- **Community**: [Telegram @BitcoinStamps](https://t.me/BitcoinStamps)
 
 ## Changelog
+
+### v0.2.0
+
+- **Stampchain API v2.3 Compatibility**: Updated schemas and validation for latest API
+- **Enhanced Testing**: Comprehensive test suite with cross-platform CI validation
+- **Improved Documentation**: Professional README with status badges and better organization
+- **Simplified Development**: Streamlined validation pipeline (TypeScript + Prettier)
+- **Bug Fixes**: Resolved CI issues and schema validation improvements
 
 ### v0.1.0
 
