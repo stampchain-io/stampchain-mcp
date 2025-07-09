@@ -19,20 +19,9 @@ clients with tools to query Bitcoin Stamps, collections, and SRC-20 tokens.
 - **Stamp Collections**: Query collections and search through collection data
 - **SRC-20 Tokens**: Get token information and search through SRC-20 tokens
 - **Type-safe**: Built with TypeScript and Zod validation
-- **Comprehensive Testing**: Unit, integration, and API tests with 182+ test cases
+- **Comprehensive Testing**: Full test coverage with CI validation
 - **Configurable**: Flexible configuration options for different environments
-- **Cross-platform**: Tested on Ubuntu, Windows, and macOS with Node.js 18+
-
-## Test Coverage
-
-This project maintains comprehensive test coverage across multiple areas:
-
-- ✅ **182+ Test Cases** - Unit, integration, and API validation tests
-- ✅ **Schema Validation** - Ensures v2.3 API compatibility
-- ✅ **Cross-platform** - Tested on Ubuntu, Windows, and macOS
-- ✅ **Multi-version** - Node.js 18.x, 20.x, and 22.x support
-- ✅ **Real API Testing** - Validates against live Stampchain API v2.3
-- ✅ **Type Safety** - Full TypeScript strict mode compliance
+- **Cross-platform**: Works on Ubuntu, Windows, and macOS with Node.js 18+
 
 ## Quick Start
 
@@ -184,37 +173,26 @@ npm run version
 
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build the TypeScript project
-- `npm run test` - Run all tests (182+ test cases)
+- `npm run test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
-- `npm run test:ci` - Run tests for CI with coverage
 - `npm run typecheck` - TypeScript type checking
 - `npm run format` - Format code with Prettier
-- `npm run validate` - Full validation (schema + typecheck + format + tests)
+- `npm run validate` - Full validation suite
 
 ### Testing
 
-The project includes comprehensive tests with 182+ test cases:
+The project includes comprehensive test coverage:
 
 ```bash
-# Run all tests (182+ test cases)
+# Run all tests
 npm test
-
-# Run specific test suites
-npm run test:unit         # Unit tests for utilities and helpers
-npm run test:integration  # Integration tests for MCP server
-npm run test:api         # API validation tests (v2.3 compatibility)
-npm run test:tools       # Tool functionality tests
-npm run test:schemas     # Schema validation tests
 
 # Run with coverage
 npm run test:coverage
 
-# Run tests in UI mode (interactive)
-npm run test:ui
-
-# CI test run (includes coverage)
-npm run test:ci
+# Run in watch mode during development
+npm run test:watch
 ```
 
 ### Project Structure
@@ -278,6 +256,43 @@ Or set the log level in your configuration:
 }
 ```
 
+## Development
+
+### Test Coverage
+
+This project maintains comprehensive test coverage across multiple areas:
+
+- ✅ **Unit Tests** - Core utilities and helper functions
+- ✅ **Integration Tests** - MCP server functionality
+- ✅ **API Validation** - Ensures v2.3 API compatibility
+- ✅ **Schema Validation** - TypeScript and Zod schema alignment
+- ✅ **Cross-platform** - Tested on Ubuntu, Windows, and macOS
+- ✅ **Multi-version** - Node.js 18.x, 20.x, and 22.x support
+- ✅ **Real API Testing** - Validates against live Stampchain API v2.3
+
+### Detailed Testing Commands
+
+```bash
+# Run specific test suites
+npm run test:unit         # Unit tests for utilities and helpers
+npm run test:integration  # Integration tests for MCP server
+npm run test:api         # API validation tests (v2.3 compatibility)
+npm run test:tools       # Tool functionality tests
+npm run test:schemas     # Schema validation tests
+
+# Advanced testing options
+npm run test:ui          # Run tests in UI mode (interactive)
+npm run test:ci          # CI test run (includes coverage)
+npm run validate         # Full validation (schema + typecheck + format + tests)
+```
+
+### Development Workflow
+
+1. Install dependencies: `npm install`
+2. Start development server: `npm run dev`
+3. Run tests in watch mode: `npm run test:watch`
+4. Validate before commit: `npm run validate`
+
 ## Contributing
 
 1. Fork the repository
@@ -291,9 +306,10 @@ Or set the log level in your configuration:
 ### Code Style
 
 - Use TypeScript for all new code
-- Follow the existing ESLint configuration
+- Follow TypeScript strict mode guidelines
 - Write tests for new features
 - Update documentation as needed
+- Run `npm run validate` before submitting PRs
 
 ## License
 
