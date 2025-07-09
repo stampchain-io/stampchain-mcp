@@ -51,6 +51,8 @@ mcp.json
 
 # Scripts directory (development tools)
 scripts/
+# Exception: Allow essential CI validation script
+!scripts/validate-api-schema.js
 
 # IDE-specific directories (development only)
 .claude/
