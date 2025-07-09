@@ -7,15 +7,17 @@ import { StampchainClient } from '../api/stampchain-client.js';
 import { createStampTools, stampTools } from './stamps.js';
 import { createCollectionTools, collectionTools } from './collections.js';
 import { createTokenTools, tokenTools } from './tokens.js';
+import { createStampAnalysisTools, stampAnalysisTools } from './stamp-analysis.js';
 import type { ITool } from '../interfaces/tool.js';
 
 // Re-export individual tool classes
 export * from './stamps.js';
 export * from './collections.js';
 export * from './tokens.js';
+export * from './stamp-analysis.js';
 
 // Export tool type collections
-export { stampTools, collectionTools, tokenTools };
+export { stampTools, collectionTools, tokenTools, stampAnalysisTools };
 
 // Export registry
 export * from './registry.js';
@@ -29,11 +31,13 @@ export function createAllTools(apiClient?: StampchainClient): Record<string, ITo
   const stamps = createStampTools(client);
   const collections = createCollectionTools(client);
   const tokens = createTokenTools(client);
+  const analysis = createStampAnalysisTools(client);
 
   return {
     ...stamps,
     ...collections,
     ...tokens,
+    ...analysis,
   };
 }
 
@@ -57,6 +61,10 @@ export function getAvailableToolNames(): string[] {
     // Token tools
     'get_token_info',
     'search_tokens',
+
+    // Analysis tools
+    'analyze_stamp_code',
+    'get_stamp_dependencies',
   ];
 }
 
@@ -85,5 +93,10 @@ export const toolMetadata = {
     category: 'SRC-20 Tokens',
     description: 'Tools for SRC-20 token information',
     tools: ['get_token_info', 'search_tokens'],
+  },
+  analysis: {
+    category: 'Recursive Stamp Analysis',
+    description: 'Tools for analyzing recursive stamp code structure and dependencies',
+    tools: ['analyze_stamp_code', 'get_stamp_dependencies'],
   },
 };
