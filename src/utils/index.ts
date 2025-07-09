@@ -40,6 +40,43 @@ export {
   createErrorResponse,
 } from './errors.js';
 
+// Export error context utilities
+export {
+  type StandardErrorContext,
+  type MCPErrorContext,
+  ErrorContextBuilder,
+  createErrorContext,
+  createMCPErrorContext,
+  ErrorContextPatterns,
+  logErrorContext,
+  formatErrorWithContext,
+} from './error-context.js';
+
+// Export MCP error handler utilities
+export {
+  type ErrorHandlingConfig,
+  type ErrorHandlingResult,
+  MCPErrorHandler,
+  defaultErrorHandler,
+  handleMCPError,
+  handleValidationError,
+  handleAPIError,
+  throwMCPError,
+  throwMCPValidationError,
+  withErrorHandling,
+} from './mcp-error-handler.js';
+
+// Export MCP response formatter utilities
+export {
+  type MCPErrorResponseConfig,
+  MCPResponseFormatter,
+  defaultResponseFormatter,
+  createMCPErrorResponse,
+  throwMCPCompliantError,
+  createSuccessResponse,
+  validateMCPResponse,
+} from './mcp-response-formatter.js';
+
 export type { JsonRpcError } from './errors.js';
 
 // Export formatter utilities

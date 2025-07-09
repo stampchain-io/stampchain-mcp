@@ -3,11 +3,12 @@
  * Analyzes stamp code structure, dependencies, and patterns
  */
 
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { Tool as MCPTool } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolResponse, ToolContext } from '../interfaces/tool.js';
 import { textResponse, multiResponse, BaseTool } from '../interfaces/tool.js';
 import { ToolExecutionError, ValidationError } from '../utils/errors.js';
+import { handleMCPError, handleValidationError } from '../utils/mcp-error-handler.js';
 import { StampchainClient } from '../api/stampchain-client.js';
 import { RecursiveStampParser } from '../utils/recursive-parser.js';
 import { parseStampId, isStampIdentifier } from '../utils/validators.js';
@@ -120,22 +121,15 @@ export class AnalyzeStampCodeTool extends BaseTool<
         { type: 'text', text: `\nDetailed Analysis:\n${JSON.stringify(analysis, null, 2)}` }
       );
     } catch (error) {
-      context?.logger?.error('Error executing analyze_stamp_code tool', { error });
-
-      if (error instanceof ValidationError) {
-        throw error;
+      // Handle Zod validation errors with new standardized pattern
+      if (error instanceof z.ZodError) {
+        const result = handleValidationError(error, this.name, params, context);
+        return result.response;
       }
 
-      if (error instanceof ToolExecutionError) {
-        throw error;
-      }
-
-      // Pass through the original error message for API errors
-      if (error instanceof Error) {
-        throw new ToolExecutionError(error.message, this.name, error);
-      }
-
-      throw new ToolExecutionError('Failed to analyze stamp code', this.name, error);
+      // Handle all other errors with standardized pattern
+      const result = handleMCPError(error, this.name, 'stamp_analysis', params, context);
+      return result.response;
     }
   }
 
