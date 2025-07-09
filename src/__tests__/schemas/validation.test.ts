@@ -3,21 +3,21 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
  * Tests for Zod schema validation
  */
 
-import { 
-  StampSchema, 
+import {
+  StampSchema,
   GetStampParamsSchema,
   SearchStampsParamsSchema,
-  GetRecentStampsParamsSchema 
+  GetRecentStampsParamsSchema,
 } from '../../schemas/stamps.js';
-import { 
+import {
   CollectionSchema,
   GetCollectionParamsSchema,
-  SearchCollectionsParamsSchema 
+  SearchCollectionsParamsSchema,
 } from '../../schemas/collections.js';
-import { 
+import {
   TokenSchema,
   GetTokenInfoParamsSchema,
-  SearchTokensParamsSchema 
+  SearchTokensParamsSchema,
 } from '../../schemas/tokens.js';
 import { createMockStamp, createMockCollection, createMockToken } from '../utils/test-helpers.js';
 
@@ -26,7 +26,7 @@ describe('Schema Validation', () => {
     it('should validate valid stamp data', () => {
       const validStamp = createMockStamp();
       const result = StampSchema.safeParse(validStamp);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(validStamp);
@@ -39,7 +39,7 @@ describe('Schema Validation', () => {
         block_index: 800000,
         cpid: 'A123456789012345678901234567890123456789',
       };
-      
+
       const result = StampSchema.safeParse(invalidStamp);
       expect(result.success).toBe(false);
     });
@@ -64,7 +64,7 @@ describe('Schema Validation', () => {
         floorPrice: 1000,
         // Missing required fields: creator_name, keyburn, floorPriceUSD, marketCapUSD
       };
-      
+
       const result = StampSchema.safeParse(stampWithMissingFields);
       expect(result.success).toBe(false);
     });
@@ -80,7 +80,7 @@ describe('Schema Validation', () => {
     it('should validate valid stamp ID parameter', () => {
       const validParams = { stamp_id: 12345 };
       const result = GetStampParamsSchema.safeParse(validParams);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.stamp_id).toBe(12345);
@@ -123,7 +123,7 @@ describe('Schema Validation', () => {
         page: 2,
         page_size: 50,
       };
-      
+
       const result = SearchStampsParamsSchema.safeParse(params);
       expect(result.success).toBe(true);
       if (result.success) {
@@ -159,7 +159,7 @@ describe('Schema Validation', () => {
     it('should validate valid collection data', () => {
       const validCollection = createMockCollection();
       const result = CollectionSchema.safeParse(validCollection);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(validCollection);
@@ -177,7 +177,7 @@ describe('Schema Validation', () => {
         stamps: [1, 2, 3],
         // created_at, website, and social_links are optional
       };
-      
+
       const result = CollectionSchema.safeParse(minimalCollection);
       expect(result.success).toBe(true);
     });
@@ -193,7 +193,7 @@ describe('Schema Validation', () => {
     it('should validate valid token data', () => {
       const validToken = createMockToken();
       const result = TokenSchema.safeParse(validToken);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(validToken);
@@ -224,7 +224,7 @@ describe('Schema Validation', () => {
     it('should validate valid ticker parameter', () => {
       const validParams = { tick: 'TEST' };
       const result = GetTokenInfoParamsSchema.safeParse(validParams);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.tick).toBe('TEST');
@@ -263,7 +263,7 @@ describe('Schema Validation', () => {
         page: 2,
         page_size: 50,
       };
-      
+
       const result = SearchTokensParamsSchema.safeParse(params);
       expect(result.success).toBe(true);
       if (result.success) {

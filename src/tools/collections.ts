@@ -9,25 +9,27 @@ import type { ToolResponse, ToolContext } from '../interfaces/tool.js';
 import { textResponse, multiResponse, BaseTool } from '../interfaces/tool.js';
 import { ToolExecutionError, ValidationError } from '../utils/errors.js';
 import { StampchainClient } from '../api/stampchain-client.js';
-import { 
-  GetCollectionParamsSchema, 
+import {
+  GetCollectionParamsSchema,
   SearchCollectionsParamsSchema,
   type GetCollectionParams,
-  type SearchCollectionsParams
+  type SearchCollectionsParams,
 } from '../schemas/collections.js';
-import { 
-  createTable
-} from '../utils/formatters.js';
+import { createTable } from '../utils/formatters.js';
 import type { CollectionResponse } from '../api/types.js';
 
 /**
  * Tool for retrieving information about a specific stamp collection
  */
-export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionParamsSchema>, GetCollectionParams> {
+export class GetCollectionTool extends BaseTool<
+  z.input<typeof GetCollectionParamsSchema>,
+  GetCollectionParams
+> {
   public readonly name = 'get_collection';
-  
-  public readonly description = 'Retrieve detailed information about a specific stamp collection by its ID';
-  
+
+  public readonly description =
+    'Retrieve detailed information about a specific stamp collection by its ID';
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -56,30 +58,30 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
     },
     required: ['collection_id'],
   };
-  
+
   public readonly schema = GetCollectionParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['collections', 'query'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
+
   public async execute(params: GetCollectionParams, context?: ToolContext): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_collection tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Since the API doesn't have a direct getCollection method,
       // we'll search for collections with the specific ID
       const collectionResponse = await this.apiClient.searchCollections({
@@ -87,7 +89,7 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
         page: 1,
         page_size: 1,
       });
-      
+
       if (!collectionResponse || collectionResponse.length === 0) {
         throw new ToolExecutionError(
           `Collection with ID ${validatedParams.collection_id} not found`,
@@ -95,10 +97,10 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
           { collectionId: validatedParams.collection_id }
         );
       }
-      
+
       const collection = collectionResponse[0];
       const contents = [];
-      
+
       // Add formatted collection info
       const collectionInfo = [
         `Collection: ${collection.collection_name}`,
@@ -109,7 +111,7 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
         `Total Editions: ${collection.total_editions}`,
       ].join('\n');
       contents.push({ type: 'text' as const, text: collectionInfo });
-      
+
       // If stamps are requested, fetch them
       if (validatedParams.include_stamps) {
         try {
@@ -118,63 +120,64 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
             page: validatedParams.stamps_page,
             page_size: validatedParams.stamps_limit,
           });
-          
+
           if (stampsResponse && stampsResponse.length > 0) {
-            contents.push({ 
-              type: 'text' as const, 
-              text: `\n\nStamps in Collection (Page ${validatedParams.stamps_page}):\n` 
+            contents.push({
+              type: 'text' as const,
+              text: `\n\nStamps in Collection (Page ${validatedParams.stamps_page}):\n`,
             });
-            
-            const stampTable = createTable(
-              stampsResponse,
-              [
-                { key: 'stamp', label: 'ID' },
-                { key: 'cpid', label: 'CPID' },
-                { key: 'creator', label: 'Creator', format: (v: unknown) => typeof v === 'string' ? v.substring(0, 12) + '...' : String(v) },
-                { key: 'supply', label: 'Supply' },
-                { key: 'floorPrice', label: 'Floor Price', format: (v: unknown) => v ? `${String(v)} BTC` : 'N/A' },
-              ]
-            );
-            
+
+            const stampTable = createTable(stampsResponse, [
+              { key: 'stamp', label: 'ID' },
+              { key: 'cpid', label: 'CPID' },
+              {
+                key: 'creator',
+                label: 'Creator',
+                format: (v: unknown) =>
+                  typeof v === 'string' ? v.substring(0, 12) + '...' : String(v),
+              },
+              { key: 'supply', label: 'Supply' },
+              {
+                key: 'floorPrice',
+                label: 'Floor Price',
+                format: (v: unknown) => (v ? `${String(v)} BTC` : 'N/A'),
+              },
+            ]);
+
             contents.push({ type: 'text' as const, text: stampTable });
-            contents.push({ 
-              type: 'text' as const, 
-              text: `\nTotal stamps in collection: ${stampsResponse.length}` 
+            contents.push({
+              type: 'text' as const,
+              text: `\nTotal stamps in collection: ${stampsResponse.length}`,
             });
           }
         } catch (error) {
           context?.logger?.warn('Failed to fetch stamps for collection', { error });
-          contents.push({ 
-            type: 'text' as const, 
-            text: '\n\nNote: Unable to fetch stamps for this collection' 
+          contents.push({
+            type: 'text' as const,
+            text: '\n\nNote: Unable to fetch stamps for this collection',
           });
         }
       }
-      
+
       // Add JSON representation
-      contents.push({ 
-        type: 'text' as const, 
-        text: JSON.stringify(collection, null, 2) 
+      contents.push({
+        type: 'text' as const,
+        text: JSON.stringify(collection, null, 2),
       });
-      
+
       return multiResponse(...contents);
-      
     } catch (error) {
       context?.logger?.error('Error executing get_collection tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve collection information',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve collection information', this.name, error);
     }
   }
 }
@@ -182,11 +185,14 @@ export class GetCollectionTool extends BaseTool<z.input<typeof GetCollectionPara
 /**
  * Tool for searching collections
  */
-export class SearchCollectionsTool extends BaseTool<z.input<typeof SearchCollectionsParamsSchema>, SearchCollectionsParams> {
+export class SearchCollectionsTool extends BaseTool<
+  z.input<typeof SearchCollectionsParamsSchema>,
+  SearchCollectionsParams
+> {
   public readonly name = 'search_collections';
-  
+
   public readonly description = 'Search for stamp collections with various filtering criteria';
-  
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -226,30 +232,33 @@ export class SearchCollectionsTool extends BaseTool<z.input<typeof SearchCollect
     },
     required: [],
   };
-  
+
   public readonly schema = SearchCollectionsParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['collections', 'search', 'query'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
-  public async execute(params: SearchCollectionsParams, context?: ToolContext): Promise<ToolResponse> {
+
+  public async execute(
+    params: SearchCollectionsParams,
+    context?: ToolContext
+  ): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing search_collections tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Build query parameters
       const queryParams = {
         query: validatedParams.query,
@@ -259,46 +268,54 @@ export class SearchCollectionsTool extends BaseTool<z.input<typeof SearchCollect
         page: validatedParams.page,
         page_size: validatedParams.page_size,
       };
-      
+
       // Remove undefined values
-      Object.keys(queryParams).forEach(key => {
+      Object.keys(queryParams).forEach((key) => {
         if (queryParams[key as keyof typeof queryParams] === undefined) {
           delete queryParams[key as keyof typeof queryParams];
         }
       });
-      
+
       // Search collections
       const searchResponse = await this.apiClient.searchCollections(queryParams);
-      
+
       if (!searchResponse || searchResponse.length === 0) {
         return textResponse('No collections found matching the search criteria');
       }
-      
+
       // Note: searchCollections returns CollectionResponse[] directly
       const collections = searchResponse;
-      
+
       // Create summary
       const lines = [`Found ${collections.length} collections`];
       lines.push('---');
-      
+
       // Create table view
-      const collectionTable = createTable(
-        collections,
-        [
-          { key: 'collection_name', label: 'Name' },
-          { key: 'collection_id', label: 'ID', format: (v: unknown) => typeof v === 'string' ? v.substring(0, 8) + '...' : String(v) },
-          { key: 'creators', label: 'Creators', format: (v: unknown) => Array.isArray(v) ? v.join(', ').substring(0, 20) + (v.join(', ').length > 20 ? '...' : '') : String(v) },
-          { key: 'stamp_count', label: 'Stamps' },
-          { key: 'total_editions', label: 'Editions' },
-        ]
-      );
-      
+      const collectionTable = createTable(collections, [
+        { key: 'collection_name', label: 'Name' },
+        {
+          key: 'collection_id',
+          label: 'ID',
+          format: (v: unknown) => (typeof v === 'string' ? v.substring(0, 8) + '...' : String(v)),
+        },
+        {
+          key: 'creators',
+          label: 'Creators',
+          format: (v: unknown) =>
+            Array.isArray(v)
+              ? v.join(', ').substring(0, 20) + (v.join(', ').length > 20 ? '...' : '')
+              : String(v),
+        },
+        { key: 'stamp_count', label: 'Stamps' },
+        { key: 'total_editions', label: 'Editions' },
+      ]);
+
       lines.push(collectionTable);
-      
+
       // Add detailed view for each collection
       lines.push('\n\nDetailed View:');
       lines.push('---');
-      
+
       collections.forEach((collection, index) => {
         lines.push(`\n${index + 1}. ${collection.collection_name}`);
         lines.push(`   ID: ${collection.collection_id}`);
@@ -306,33 +323,30 @@ export class SearchCollectionsTool extends BaseTool<z.input<typeof SearchCollect
         lines.push(`   Stamps: ${collection.stamp_count}`);
         lines.push(`   Total Editions: ${collection.total_editions}`);
         if (collection.collection_description) {
-          lines.push(`   Description: ${collection.collection_description.substring(0, 100)}${collection.collection_description.length > 100 ? '...' : ''}`);
+          lines.push(
+            `   Description: ${collection.collection_description.substring(0, 100)}${collection.collection_description.length > 100 ? '...' : ''}`
+          );
         }
       });
-      
+
       // Include metadata
       const metadata = {
         results_count: collections.length,
         query_params: queryParams,
       };
-      
+
       return multiResponse(
         { type: 'text', text: lines.join('\n') },
         { type: 'text', text: `\n\nSearch Metadata:\n${JSON.stringify(metadata, null, 2)}` }
       );
-      
     } catch (error) {
       context?.logger?.error('Error executing search_collections tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
-      throw new ToolExecutionError(
-        'Failed to search collections',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to search collections', this.name, error);
     }
   }
 }

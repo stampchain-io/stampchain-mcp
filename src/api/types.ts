@@ -110,7 +110,7 @@ export interface Stamp {
   block_time: string; // ISO datetime string
   tx_hash: string;
   tx_index: number;
-  ident: "STAMP" | "SRC-20" | "SRC-721";
+  ident: 'STAMP' | 'SRC-20' | 'SRC-721';
   stamp_hash: string;
   file_hash: string;
   stamp_base64?: string; // Optional in individual responses

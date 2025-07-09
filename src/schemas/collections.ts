@@ -8,10 +8,12 @@ import { z } from 'zod';
 /**
  * Schema for social links
  */
-export const SocialLinksSchema = z.object({
-  twitter: z.string().url().optional(),
-  discord: z.string().url().optional(),
-}).optional();
+export const SocialLinksSchema = z
+  .object({
+    twitter: z.string().url().optional(),
+    discord: z.string().url().optional(),
+  })
+  .optional();
 
 /**
  * Schema for a single collection (aligned with Stampchain API Collection model)
@@ -55,9 +57,26 @@ export const CollectionQueryParamsSchema = z.object({
  */
 export const GetCollectionParamsSchema = z.object({
   collection_id: z.string().describe('The ID of the collection to retrieve'),
-  include_stamps: z.boolean().optional().default(false).describe('Whether to include stamps in the collection'),
-  stamps_page: z.number().int().positive().optional().default(1).describe('Page number for stamps if included'),
-  stamps_limit: z.number().int().positive().max(100).optional().default(20).describe('Number of stamps per page'),
+  include_stamps: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to include stamps in the collection'),
+  stamps_page: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(1)
+    .describe('Page number for stamps if included'),
+  stamps_limit: z
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .optional()
+    .default(20)
+    .describe('Number of stamps per page'),
 });
 
 /**
@@ -66,7 +85,11 @@ export const GetCollectionParamsSchema = z.object({
 export const SearchCollectionsParamsSchema = z.object({
   query: z.string().optional().describe('Search query for collection name or description'),
   creator: z.string().optional().describe('Filter by creator address'),
-  sort_by: z.enum(['created_at', 'stamp_count', 'name']).optional().default('created_at').describe('Sort field'),
+  sort_by: z
+    .enum(['created_at', 'stamp_count', 'name'])
+    .optional()
+    .default('created_at')
+    .describe('Sort field'),
   sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC').describe('Sort order'),
   page: z.number().int().positive().optional().default(1).describe('Page number'),
   page_size: z.number().int().positive().max(100).optional().default(20).describe('Items per page'),

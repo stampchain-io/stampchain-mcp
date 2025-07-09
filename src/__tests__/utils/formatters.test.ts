@@ -3,13 +3,13 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
  * Tests for data formatting utilities
  */
 
-import { 
+import {
   formatStamp,
   formatCollection,
   formatToken,
   formatTimestamp,
   formatNumber,
-  formatSupply
+  formatSupply,
 } from '../../utils/formatters.js';
 import { createMockStamp, createMockCollection, createMockToken } from '../utils/test-helpers.js';
 
@@ -24,7 +24,7 @@ describe('Formatter Utilities', () => {
         divisible: 0,
         block_time: '2024-01-15T10:30:00Z',
         stamp_url: 'https://stampchain.io/stamp/12345.png',
-        block_index: 800000 // Override to match test expectation
+        block_index: 800000, // Override to match test expectation
       });
 
       const formatted = formatStamp(stamp);
@@ -46,7 +46,7 @@ describe('Formatter Utilities', () => {
         locked: 1,
         divisible: 0,
         block_time: '2024-01-15T10:30:00Z',
-        stamp_url: undefined
+        stamp_url: undefined,
       });
 
       const formatted = formatStamp(stamp);
@@ -59,7 +59,7 @@ describe('Formatter Utilities', () => {
     it('should format large supply numbers', () => {
       const stamp = createMockStamp({
         supply: 21000000,
-        divisible: 1
+        divisible: 1,
       });
 
       const formatted = formatStamp(stamp);
@@ -76,7 +76,7 @@ describe('Formatter Utilities', () => {
         collection_description: 'Original rare pepe stamps from the early days',
         creators: ['bc1qtest123456789012345678901234567890abcdef'],
         stamp_count: 1500,
-        total_editions: 1500
+        total_editions: 1500,
       });
 
       const formatted = formatCollection(collection);
@@ -94,7 +94,7 @@ describe('Formatter Utilities', () => {
         collection_name: 'Simple Collection',
         creators: ['bc1qtest123456789012345678901234567890abcdef'],
         stamp_count: 10,
-        total_editions: 10
+        total_editions: 10,
       });
 
       const formatted = formatCollection(collection);
@@ -107,7 +107,7 @@ describe('Formatter Utilities', () => {
 
     it('should handle multiple creators', () => {
       const collection = createMockCollection({
-        creators: ['bc1qtest1', 'bc1qtest2', 'bc1qtest3']
+        creators: ['bc1qtest1', 'bc1qtest2', 'bc1qtest3'],
       });
 
       const formatted = formatCollection(collection);
@@ -123,7 +123,7 @@ describe('Formatter Utilities', () => {
         max: '21000000',
         lim: '1000',
         deci: 8,
-        creator: 'bc1qtest123456789012345678901234567890abcdef'
+        creator: 'bc1qtest123456789012345678901234567890abcdef',
       });
 
       const formatted = formatToken(token);
@@ -148,7 +148,7 @@ describe('Formatter Utilities', () => {
       const token = createMockToken({
         deci: 0,
         max: '1000000',
-        lim: '100'
+        lim: '100',
       });
 
       const formatted = formatToken(token);
@@ -245,7 +245,6 @@ describe('Formatter Utilities', () => {
     });
   });
 
-
   describe('Edge Cases and Error Handling', () => {
     it('should handle null/undefined inputs gracefully', () => {
       expect(() => formatStamp(null as any)).toThrow();
@@ -273,7 +272,7 @@ describe('Formatter Utilities', () => {
     it('should handle special Unicode characters in names', () => {
       const collection = createMockCollection({
         collection_name: 'Collection with émojis 🚀 and spéciál chars',
-        collection_description: 'Dëscription with ünīcøde'
+        collection_description: 'Dëscription with ünīcøde',
       });
 
       const formatted = formatCollection(collection);

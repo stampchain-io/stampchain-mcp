@@ -24,19 +24,19 @@ function runTests(options: TestRunOptions = {}): Promise<number> {
     if (options.watch) {
       jestArgs.push('--watch');
     }
-    
+
     if (options.coverage) {
       jestArgs.push('--coverage');
     }
-    
+
     if (options.verbose) {
       jestArgs.push('--verbose');
     }
-    
+
     if (options.testPattern) {
       jestArgs.push('--testNamePattern', options.testPattern);
     }
-    
+
     if (options.maxWorkers) {
       jestArgs.push('--maxWorkers', options.maxWorkers.toString());
     }
@@ -81,32 +81,32 @@ function parseArgs(): TestRunOptions {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--watch':
       case '-w':
         options.watch = true;
         break;
-        
+
       case '--coverage':
       case '-c':
         options.coverage = true;
         break;
-        
+
       case '--verbose':
       case '-v':
         options.verbose = true;
         break;
-        
+
       case '--pattern':
       case '-p':
         options.testPattern = args[++i];
         break;
-        
+
       case '--max-workers':
         options.maxWorkers = parseInt(args[++i], 10);
         break;
-        
+
       case '--help':
       case '-h':
         console.log(`

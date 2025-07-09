@@ -4,16 +4,8 @@
  */
 
 import { z } from 'zod';
-import { 
-  BitcoinAddressSchema,
-  TransactionHashSchema,
-  CPIDSchema 
-} from '../schemas/common.js';
-import type { 
-  BitcoinAddress, 
-  TransactionHash, 
-  CPID
-} from '../schemas/common.js';
+import { BitcoinAddressSchema, TransactionHashSchema, CPIDSchema } from '../schemas/common.js';
+import type { BitcoinAddress, TransactionHash, CPID } from '../schemas/common.js';
 
 /**
  * Validate and parse a stamp ID
@@ -41,10 +33,13 @@ export function parseStampId(input: unknown): number {
 /**
  * Validate pagination parameters
  */
-export function validatePagination(page?: number, pageSize?: number): { page: number; pageSize: number } {
+export function validatePagination(
+  page?: number,
+  pageSize?: number
+): { page: number; pageSize: number } {
   const validPage = page && page > 0 ? page : 1;
   const validPageSize = pageSize && pageSize > 0 && pageSize <= 100 ? pageSize : 20;
-  
+
   return { page: validPage, pageSize: validPageSize };
 }
 
@@ -130,11 +125,11 @@ export function parseBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
-  
+
   if (typeof value === 'boolean') {
     return value;
   }
-  
+
   if (typeof value === 'string') {
     const lower = value.toLowerCase();
     if (lower === 'true' || lower === '1' || lower === 'yes') {
@@ -144,7 +139,7 @@ export function parseBoolean(value: unknown): boolean | undefined {
       return false;
     }
   }
-  
+
   throw new Error('Invalid boolean value');
 }
 
@@ -172,7 +167,10 @@ export function validateSupply(supply: number, divisible: boolean): void {
 export function coerceNumber() {
   return z.union([
     z.number(),
-    z.string().regex(/^\d+$/).transform(val => parseInt(val, 10))
+    z
+      .string()
+      .regex(/^\d+$/)
+      .transform((val) => parseInt(val, 10)),
   ]);
 }
 
@@ -196,7 +194,7 @@ export function sanitizeInput(input: string): string {
   // Remove any control characters
   // eslint-disable-next-line no-control-regex
   const sanitized = input.replace(/[\x00-\x1F\x7F]/g, '');
-  
+
   // Trim whitespace
   return sanitized.trim();
 }

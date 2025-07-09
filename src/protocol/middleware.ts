@@ -27,8 +27,8 @@ export class MiddlewareManager {
    */
   use(middleware: Middleware): void {
     this.middlewares.push(middleware);
-    this.logger.debug('Added middleware', { 
-      total: this.middlewares.length 
+    this.logger.debug('Added middleware', {
+      total: this.middlewares.length,
     });
   }
 
@@ -117,15 +117,15 @@ export function createRateLimitMiddleware(
 
     // Get or create request timestamps for this key
     let timestamps = requests.get(key) || [];
-    
+
     // Remove old timestamps outside the window
-    timestamps = timestamps.filter(t => t > windowStart);
-    
+    timestamps = timestamps.filter((t) => t > windowStart);
+
     // Check if limit exceeded
     if (timestamps.length >= maxRequests) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        `Rate limit exceeded. Maximum ${maxRequests} requests per ${windowMs/1000} seconds.`
+        `Rate limit exceeded. Maximum ${maxRequests} requests per ${windowMs / 1000} seconds.`
       );
     }
 
@@ -141,9 +141,7 @@ export function createRateLimitMiddleware(
 /**
  * Error handling middleware factory
  */
-export function createErrorHandlingMiddleware(
-  config: ServerConfig
-): Middleware {
+export function createErrorHandlingMiddleware(config: ServerConfig): Middleware {
   const logger = createLogger('error-handler', { level: config.logging.level });
 
   return async (request: Request, next: MiddlewareNext): Promise<Result> => {
@@ -154,10 +152,9 @@ export function createErrorHandlingMiddleware(
       logger.error('Unhandled error in request processing', {
         method: request.method,
         error: error instanceof Error ? error.message : String(error),
-        ...(config.development.enableStackTraces && error instanceof Error 
-          ? { stack: error.stack } 
-          : {}
-        ),
+        ...(config.development.enableStackTraces && error instanceof Error
+          ? { stack: error.stack }
+          : {}),
       });
 
       // Convert to MCP error if not already
@@ -180,18 +177,12 @@ export function createValidationMiddleware(): Middleware {
   return async (request: Request, next: MiddlewareNext): Promise<Result> => {
     // Basic request validation
     if (!request.method || typeof request.method !== 'string') {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        'Invalid request: method is required'
-      );
+      throw new McpError(ErrorCode.InvalidRequest, 'Invalid request: method is required');
     }
 
     // Method-specific validation
     if (request.method === 'tools/call' && !request.params?.name) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        'Tool name is required for tools/call'
-      );
+      throw new McpError(ErrorCode.InvalidParams, 'Tool name is required for tools/call');
     }
 
     return next();
@@ -225,14 +216,14 @@ export function createMetricsMiddleware(): Middleware {
 
       metrics.successfulRequests++;
       metrics.responseTimes.push(duration);
-      
+
       // Keep only last 100 response times
       if (metrics.responseTimes.length > 100) {
         metrics.responseTimes.shift();
       }
 
       // Calculate average
-      metrics.averageResponseTime = 
+      metrics.averageResponseTime =
         metrics.responseTimes.reduce((a, b) => a + b, 0) / metrics.responseTimes.length;
 
       return result;

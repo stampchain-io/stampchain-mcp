@@ -67,7 +67,7 @@ describe('Configuration System', () => {
 
       const result = ServerConfigSchema.safeParse(minimalConfig);
       expect(result.success).toBe(true);
-      
+
       if (result.success) {
         expect(result.data.logging.level).toBe('info');
         expect(result.data.api.timeout).toBe(30000);
@@ -139,7 +139,7 @@ describe('Configuration System', () => {
         a: 1,
         b: 20, // Overridden
         c: 3,
-        d: 4,  // Added
+        d: 4, // Added
       });
     });
 
@@ -148,7 +148,7 @@ describe('Configuration System', () => {
         logging: { level: 'info', enableColors: true },
         api: { timeout: 30000, retries: 3 },
       };
-      
+
       const override = {
         logging: { level: 'debug' },
         api: { timeout: 10000 },
@@ -260,7 +260,7 @@ describe('Configuration System', () => {
     it('should apply configuration precedence (CLI > ENV > File > Default)', () => {
       // Set up all sources
       process.env.STAMPCHAIN_LOG_LEVEL = 'warn';
-      
+
       const fileConfig = {
         logging: { level: 'info' },
         api: { timeout: 25000 },
@@ -277,7 +277,7 @@ describe('Configuration System', () => {
       });
 
       expect(config.logging.level).toBe('debug'); // CLI wins
-      expect(config.api.timeout).toBe(25000);     // From file
+      expect(config.api.timeout).toBe(25000); // From file
     });
 
     it('should handle missing configuration file gracefully', () => {

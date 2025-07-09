@@ -33,7 +33,7 @@ export function transformTokenResponse(response: TokenResponse): Token {
  */
 export function groupStampsByCreator(stamps: Stamp[]): Map<string, Stamp[]> {
   const grouped = new Map<string, Stamp[]>();
-  
+
   for (const stamp of stamps) {
     const creator = stamp.creator;
     if (!grouped.has(creator)) {
@@ -41,7 +41,7 @@ export function groupStampsByCreator(stamps: Stamp[]): Map<string, Stamp[]> {
     }
     grouped.get(creator)!.push(stamp);
   }
-  
+
   return grouped;
 }
 
@@ -50,7 +50,7 @@ export function groupStampsByCreator(stamps: Stamp[]): Map<string, Stamp[]> {
  */
 export function groupStampsByCollection(stamps: Stamp[]): Map<string | null, Stamp[]> {
   const grouped = new Map<string | null, Stamp[]>();
-  
+
   for (const stamp of stamps) {
     // Note: Individual stamps don't have collection_id in the API schema
     // Collections reference stamps by ID, not the other way around
@@ -60,7 +60,7 @@ export function groupStampsByCollection(stamps: Stamp[]): Map<string | null, Sta
     }
     grouped.get(collectionId)!.push(stamp);
   }
-  
+
   return grouped;
 }
 
@@ -96,23 +96,23 @@ export function calculateStampStats(stamps: Stamp[]) {
     creators.add(stamp.creator);
     // Note: Individual stamps don't have collection_id in API schema
     // Collection grouping would need to be done via separate collection API calls
-    
+
     totalSupply += stamp.supply ?? 0;
-    
+
     if (stamp.stamp ?? 0 < 0) {
       cursedCount++;
     } else {
       btcStampCount++;
     }
-    
+
     if (stamp.locked === 1) {
       lockedCount++;
     }
-    
+
     if (typeof stamp.floorPrice === 'number') {
       totalFloorValueBTC += stamp.floorPrice * (stamp.supply ?? 0);
     }
-    
+
     if (stamp.floorPriceUSD) {
       totalFloorValueUSD += stamp.floorPriceUSD * (stamp.supply ?? 0);
     }
@@ -141,10 +141,10 @@ export function sortStamps(
   order: 'ASC' | 'DESC' = 'DESC'
 ): Stamp[] {
   const sorted = [...stamps];
-  
+
   sorted.sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
       case 'id':
         comparison = (a.stamp ?? 0) - (b.stamp ?? 0);
@@ -162,10 +162,10 @@ export function sortStamps(
         break;
       }
     }
-    
+
     return order === 'ASC' ? comparison : -comparison;
   });
-  
+
   return sorted;
 }
 
@@ -186,10 +186,16 @@ export interface StampFilters {
 }
 
 export function filterStamps(stamps: Stamp[], filters: StampFilters): Stamp[] {
-  return stamps.filter(stamp => {
-    if (filters.minId !== undefined && (stamp.stamp ?? 0) < filters.minId) {return false;}
-    if (filters.maxId !== undefined && (stamp.stamp ?? 0) > filters.maxId) {return false;}
-    if (filters.creator && stamp.creator !== filters.creator) {return false;}
+  return stamps.filter((stamp) => {
+    if (filters.minId !== undefined && (stamp.stamp ?? 0) < filters.minId) {
+      return false;
+    }
+    if (filters.maxId !== undefined && (stamp.stamp ?? 0) > filters.maxId) {
+      return false;
+    }
+    if (filters.creator && stamp.creator !== filters.creator) {
+      return false;
+    }
     // Note: collection_id filtering not supported at stamp level
     // Would need separate collection API call to filter by collection
     if (filters.collectionId) {
@@ -198,17 +204,29 @@ export function filterStamps(stamps: Stamp[], filters: StampFilters): Stamp[] {
     }
     if (filters.isCursed !== undefined) {
       const isCursed = stamp.stamp ?? 0 < 0;
-      if (filters.isCursed !== isCursed) {return false;}
+      if (filters.isCursed !== isCursed) {
+        return false;
+      }
     }
-    if (filters.isLocked !== undefined && (stamp.locked === 1) !== filters.isLocked) {return false;}
+    if (filters.isLocked !== undefined && (stamp.locked === 1) !== filters.isLocked) {
+      return false;
+    }
     if (filters.hasFloorPrice !== undefined) {
       const hasPrice = stamp.floorPrice !== null && stamp.floorPrice !== 0;
-      if (filters.hasFloorPrice !== hasPrice) {return false;}
+      if (filters.hasFloorPrice !== hasPrice) {
+        return false;
+      }
     }
-    if (filters.minSupply !== undefined && (stamp.supply ?? 0) < filters.minSupply) {return false;}
-    if (filters.maxSupply !== undefined && (stamp.supply ?? 0) > filters.maxSupply) {return false;}
-    if (filters.mimeTypes && !filters.mimeTypes.includes(stamp.stamp_mimetype)) {return false;}
-    
+    if (filters.minSupply !== undefined && (stamp.supply ?? 0) < filters.minSupply) {
+      return false;
+    }
+    if (filters.maxSupply !== undefined && (stamp.supply ?? 0) > filters.maxSupply) {
+      return false;
+    }
+    if (filters.mimeTypes && !filters.mimeTypes.includes(stamp.stamp_mimetype)) {
+      return false;
+    }
+
     return true;
   });
 }
@@ -227,14 +245,14 @@ export function extractFilterOptions(stamps: Stamp[]) {
   const creators = new Set<string>();
   const collections = new Set<string>();
   const mimeTypes = new Set<string>();
-  
+
   for (const stamp of stamps) {
     creators.add(stamp.creator);
     // Note: Individual stamps don't have collection_id in API schema
     // Collection grouping would need to be done via separate collection API calls
     mimeTypes.add(stamp.stamp_mimetype);
   }
-  
+
   return {
     creators: Array.from(creators).sort(),
     collections: Array.from(collections).sort(),
@@ -255,7 +273,7 @@ export function paginate<T>(
   const currentPage = Math.min(Math.max(1, page), totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  
+
   return {
     items: items.slice(startIndex, endIndex),
     totalPages,

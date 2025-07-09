@@ -45,6 +45,7 @@ await manager.connect(transport);
 ```
 
 **Responsibilities:**
+
 - Creates and configures the MCP server
 - Registers request and notification handlers
 - Manages connection lifecycle
@@ -63,6 +64,7 @@ const handlers = new ProtocolHandlers({
 ```
 
 **Supported Methods:**
+
 - `tools/list` - List available tools
 - `tools/call` - Execute a specific tool
 - `resources/list` - List resources (not implemented)
@@ -89,6 +91,7 @@ middleware.use(async (request, next) => {
 ```
 
 **Built-in Middleware:**
+
 - **Validation** - Validates request structure
 - **Logging** - Logs all requests/responses
 - **Rate Limiting** - Prevents abuse
@@ -117,6 +120,7 @@ connectionHandler.on('disconnect', (id) => {
 ```
 
 **Features:**
+
 - Connection tracking
 - Session management
 - Activity monitoring
@@ -181,14 +185,11 @@ import type { Middleware } from './protocol/middleware.js';
 const authMiddleware: Middleware = async (request, next) => {
   // Check authentication token
   const token = request.params?.auth;
-  
+
   if (!isValidToken(token)) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      'Authentication required'
-    );
+    throw new McpError(ErrorCode.InvalidRequest, 'Authentication required');
   }
-  
+
   // Continue to next middleware
   return next();
 };
@@ -202,15 +203,15 @@ const cacheMiddleware: Middleware = async (request, next) => {
       return cached;
     }
   }
-  
+
   // Execute request
   const result = await next();
-  
+
   // Cache result
   if (request.method === 'tools/list') {
     cache.set('tools-list', result, 60000); // Cache for 1 minute
   }
-  
+
   return result;
 };
 ```

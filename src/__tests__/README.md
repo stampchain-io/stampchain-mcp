@@ -82,6 +82,7 @@ npm test -- --maxWorkers=4
 Tests for the `StampchainClient` class that handles all interactions with the Stampchain API.
 
 **Coverage includes:**
+
 - HTTP client configuration
 - Request/response handling
 - Error handling and retries
@@ -89,6 +90,7 @@ Tests for the `StampchainClient` class that handles all interactions with the St
 - Mock API responses
 
 **Example:**
+
 ```typescript
 it('should fetch stamp data successfully', async () => {
   const mockStamp = createMockStamp();
@@ -104,12 +106,14 @@ it('should fetch stamp data successfully', async () => {
 Tests for Zod schema validation used throughout the application.
 
 **Coverage includes:**
+
 - Input parameter validation
 - Data structure validation
 - Type coercion and defaults
 - Error message generation
 
 **Example:**
+
 ```typescript
 it('should validate valid stamp data', () => {
   const validStamp = createMockStamp();
@@ -123,6 +127,7 @@ it('should validate valid stamp data', () => {
 Tests for individual MCP tools and the tool registry system.
 
 **Coverage includes:**
+
 - Tool execution logic
 - Parameter validation
 - Error handling
@@ -130,6 +135,7 @@ Tests for individual MCP tools and the tool registry system.
 - Tool registry management
 
 **Example:**
+
 ```typescript
 it('should execute get_stamp tool successfully', async () => {
   const mockStamp = createMockStamp();
@@ -145,6 +151,7 @@ it('should execute get_stamp tool successfully', async () => {
 Tests for the configuration management system.
 
 **Coverage includes:**
+
 - Configuration loading and merging
 - Environment variable handling
 - File-based configuration
@@ -156,6 +163,7 @@ Tests for the configuration management system.
 End-to-end tests that verify the complete MCP server functionality.
 
 **Coverage includes:**
+
 - Server initialization
 - Tool registration
 - Request handling
@@ -167,6 +175,7 @@ End-to-end tests that verify the complete MCP server functionality.
 Tests for utility functions and formatters.
 
 **Coverage includes:**
+
 - Data formatting
 - Type conversion
 - Helper functions
@@ -211,10 +220,7 @@ const mockApiClient = createMockApiClient();
 
 ```typescript
 // Test that a function throws with specific message
-await expectToThrow(
-  () => tool.execute({ invalid: 'params' }, context),
-  'Validation failed'
-);
+await expectToThrow(() => tool.execute({ invalid: 'params' }, context), 'Validation failed');
 ```
 
 ## Coverage Requirements
@@ -359,6 +365,7 @@ npm run test:ci
 ```
 
 This command includes:
+
 - Coverage reporting
 - Verbose output for CI logs
 - Limited worker processes for stability

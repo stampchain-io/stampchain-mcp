@@ -109,7 +109,12 @@ export function formatToken(token: Token): string {
 /**
  * Format a list of stamps for display
  */
-export function formatStampList(stamps: Stamp[], total: number, page: number, pageSize: number): string {
+export function formatStampList(
+  stamps: Stamp[],
+  total: number,
+  page: number,
+  pageSize: number
+): string {
   const lines = [`Found ${total} stamps (showing page ${page})`];
   lines.push('---');
 
@@ -200,9 +205,9 @@ export function summarizeStamps(stamps: Stamp[]): string {
   }
 
   const totalSupply = stamps.reduce((sum, stamp) => sum + (stamp.supply || 0), 0);
-  const creators = new Set(stamps.map(s => s.creator)).size;
+  const creators = new Set(stamps.map((s) => s.creator)).size;
   // Note: Collections are tracked separately from stamps in the API
-  const stampsWithSupply = stamps.filter(s => s.supply !== null).length;
+  const stampsWithSupply = stamps.filter((s) => s.supply !== null).length;
 
   return [
     `Total Stamps: ${stamps.length}`,
@@ -253,7 +258,6 @@ export function formatNumber(value: number | string): string {
   return num.toLocaleString();
 }
 
-
 /**
  * Create a table-like display for multiple items
  */
@@ -266,8 +270,8 @@ export function createTable<T>(
   }
 
   // Calculate column widths
-  const widths = columns.map(col => {
-    const values = items.map(item => {
+  const widths = columns.map((col) => {
+    const values = items.map((item) => {
       const value = item[col.key];
       const formatted = col.format ? col.format(value) : String(value || '');
       return formatted.length;
@@ -276,13 +280,11 @@ export function createTable<T>(
   });
 
   // Create header
-  const header = columns
-    .map((col, i) => col.label.padEnd(widths[i]))
-    .join(' | ');
-  const separator = widths.map(w => '-'.repeat(w)).join('-+-');
+  const header = columns.map((col, i) => col.label.padEnd(widths[i])).join(' | ');
+  const separator = widths.map((w) => '-'.repeat(w)).join('-+-');
 
   // Create rows
-  const rows = items.map(item => {
+  const rows = items.map((item) => {
     return columns
       .map((col, i) => {
         const value = item[col.key];

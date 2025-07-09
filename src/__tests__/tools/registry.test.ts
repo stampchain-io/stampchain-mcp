@@ -19,7 +19,7 @@ describe('ToolRegistry', () => {
       allowDuplicateNames: false,
       maxTools: 100,
     });
-    
+
     mockTool1 = new GetStampTool();
     mockTool2 = new GetCollectionTool();
   });
@@ -63,7 +63,7 @@ describe('ToolRegistry', () => {
 
       expect(() => {
         registry.register(mockTool1, { category: 'duplicate' });
-      }).toThrow('Tool with name \'get_stamp\' already registered');
+      }).toThrow("Tool with name 'get_stamp' already registered");
     });
 
     it('should allow duplicate tool names when configured', () => {
@@ -72,7 +72,7 @@ describe('ToolRegistry', () => {
       });
 
       duplicateRegistry.register(mockTool1);
-      
+
       expect(() => {
         duplicateRegistry.register(mockTool1, { category: 'duplicate' });
       }).not.toThrow();
@@ -152,7 +152,7 @@ describe('ToolRegistry', () => {
 
     it('should list all registered tool names', () => {
       const tools = registry.list();
-      const toolNames = tools.map(tool => tool.name);
+      const toolNames = tools.map((tool) => tool.name);
       expect(toolNames).toContain('get_stamp');
       expect(toolNames).toContain('get_collection');
       expect(tools).toHaveLength(2);
@@ -167,9 +167,9 @@ describe('ToolRegistry', () => {
 
     it('should remove registered tool', () => {
       expect(registry.has('get_stamp')).toBe(true);
-      
+
       registry.remove('get_stamp');
-      
+
       expect(registry.has('get_stamp')).toBe(false);
     });
 
@@ -187,9 +187,9 @@ describe('ToolRegistry', () => {
 
     it('should remove all tools', () => {
       expect(registry.list()).toHaveLength(2);
-      
+
       registry.clear();
-      
+
       expect(registry.list()).toHaveLength(0);
     });
   });
@@ -233,18 +233,18 @@ describe('ToolRegistry', () => {
 
     it('should disable tool', () => {
       expect(registry.isEnabled('get_stamp')).toBe(true);
-      
+
       registry.disable('get_stamp');
-      
+
       expect(registry.isEnabled('get_stamp')).toBe(false);
     });
 
     it('should enable tool', () => {
       registry.disable('get_stamp');
       expect(registry.isEnabled('get_stamp')).toBe(false);
-      
+
       registry.enable('get_stamp');
-      
+
       expect(registry.isEnabled('get_stamp')).toBe(true);
     });
 
@@ -252,7 +252,7 @@ describe('ToolRegistry', () => {
       expect(() => {
         registry.disable('non_existent_tool');
       }).not.toThrow();
-      
+
       expect(() => {
         registry.enable('non_existent_tool');
       }).not.toThrow();
@@ -268,7 +268,7 @@ describe('ToolRegistry', () => {
 
     it('should return accurate statistics', () => {
       const stats = registry.getStats();
-      
+
       expect(stats.totalTools).toBe(2);
       expect(stats.enabledTools).toBe(1);
       expect(stats.disabledTools).toBe(1);
@@ -285,7 +285,7 @@ describe('ToolRegistry', () => {
 
     it('should return only enabled tools in MCP format', () => {
       const mcpTools = registry.getMCPTools();
-      
+
       expect(mcpTools).toHaveLength(1);
       expect(mcpTools[0].name).toBe('get_collection');
       expect(mcpTools[0].description).toBeDefined();
@@ -294,26 +294,26 @@ describe('ToolRegistry', () => {
 
     it('should return all tools when includeDisabled is true', () => {
       const mcpTools = registry.getMCPTools(true);
-      
+
       expect(mcpTools).toHaveLength(2);
-      expect(mcpTools.map(t => t.name)).toContain('get_stamp');
-      expect(mcpTools.map(t => t.name)).toContain('get_collection');
+      expect(mcpTools.map((t) => t.name)).toContain('get_stamp');
+      expect(mcpTools.map((t) => t.name)).toContain('get_collection');
     });
   });
 
   describe('export/import', () => {
     beforeEach(() => {
-      registry.register(mockTool1, { 
+      registry.register(mockTool1, {
         category: 'stamps',
         version: '1.0.0',
-        description: 'Custom description'
+        description: 'Custom description',
       });
       registry.register(mockTool2, { category: 'collections' });
     });
 
     it('should export registry configuration', () => {
       const exported = registry.export();
-      
+
       expect(exported.tools).toHaveLength(2);
       expect(exported.tools[0].name).toBe('get_stamp');
       expect(exported.tools[0].category).toBe('stamps');
@@ -323,7 +323,7 @@ describe('ToolRegistry', () => {
     it('should import registry configuration', () => {
       const exported = registry.export();
       const newRegistry = new ToolRegistry();
-      
+
       // Note: Import would need to be implemented to recreate tool instances
       // This test validates the export structure
       expect(exported.tools).toBeDefined();
@@ -335,15 +335,15 @@ describe('ToolRegistry', () => {
     it('should handle tool execution errors gracefully', async () => {
       const context = createMockToolContext();
       registry.register(mockTool1);
-      
+
       // Mock tool execution to throw error
       const originalExecute = mockTool1.execute;
       mockTool1.execute = vi.fn().mockRejectedValueOnce(new Error('Tool execution failed'));
-      
+
       const tool = registry.get('get_stamp');
-      
+
       await expect(tool.execute({}, context)).rejects.toThrow('Tool execution failed');
-      
+
       // Restore original method
       mockTool1.execute = originalExecute;
     });

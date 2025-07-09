@@ -5,7 +5,7 @@
 
 import { EventEmitter } from 'events';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { 
+import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   ListResourcesRequestSchema,
@@ -45,10 +45,12 @@ export class ProtocolManager extends EventEmitter {
 
   constructor(options: ProtocolManagerOptions) {
     super();
-    
-    this.logger = options.logger || createLogger('protocol-manager', {
-      level: options.config.logging.level
-    });
+
+    this.logger =
+      options.logger ||
+      createLogger('protocol-manager', {
+        level: options.config.logging.level,
+      });
 
     // Initialize connection handler
     this.connectionHandler = new ConnectionHandler({
@@ -78,7 +80,7 @@ export class ProtocolManager extends EventEmitter {
 
     // Register all request handlers
     this.registerHandlers();
-    
+
     // Setup connection handler events
     this.setupConnectionEvents();
   }
@@ -104,21 +106,21 @@ export class ProtocolManager extends EventEmitter {
         try {
           const result = await handler(...args);
           this.emit('request-success', method);
-          
+
           // Emit tool execution event for tool calls
           if (method === 'tools/call' && args[0]?.params?.name) {
             this.emit('tool-execution', args[0].params.name, true);
           }
-          
+
           return result;
         } catch (error) {
           this.emit('request-error', method, error);
-          
+
           // Emit tool execution event for failed tool calls
           if (method === 'tools/call' && args[0]?.params?.name) {
             this.emit('tool-execution', args[0].params.name, false);
           }
-          
+
           throw error;
         }
       };
@@ -126,13 +128,41 @@ export class ProtocolManager extends EventEmitter {
 
     // Register request handlers
     const requestHandlers = [
-      { schema: ListToolsRequestSchema, method: 'tools/list', handler: this.handlers.handleListTools.bind(this.handlers) },
-      { schema: CallToolRequestSchema, method: 'tools/call', handler: this.handlers.handleCallTool.bind(this.handlers) },
-      { schema: ListResourcesRequestSchema, method: 'resources/list', handler: this.handlers.handleListResources.bind(this.handlers) },
-      { schema: ReadResourceRequestSchema, method: 'resources/read', handler: this.handlers.handleReadResource.bind(this.handlers) },
-      { schema: ListPromptsRequestSchema, method: 'prompts/list', handler: this.handlers.handleListPrompts.bind(this.handlers) },
-      { schema: GetPromptRequestSchema, method: 'prompts/get', handler: this.handlers.handleGetPrompt.bind(this.handlers) },
-      { schema: CompleteRequestSchema, method: 'completion/complete', handler: this.handlers.handleComplete.bind(this.handlers) },
+      {
+        schema: ListToolsRequestSchema,
+        method: 'tools/list',
+        handler: this.handlers.handleListTools.bind(this.handlers),
+      },
+      {
+        schema: CallToolRequestSchema,
+        method: 'tools/call',
+        handler: this.handlers.handleCallTool.bind(this.handlers),
+      },
+      {
+        schema: ListResourcesRequestSchema,
+        method: 'resources/list',
+        handler: this.handlers.handleListResources.bind(this.handlers),
+      },
+      {
+        schema: ReadResourceRequestSchema,
+        method: 'resources/read',
+        handler: this.handlers.handleReadResource.bind(this.handlers),
+      },
+      {
+        schema: ListPromptsRequestSchema,
+        method: 'prompts/list',
+        handler: this.handlers.handleListPrompts.bind(this.handlers),
+      },
+      {
+        schema: GetPromptRequestSchema,
+        method: 'prompts/get',
+        handler: this.handlers.handleGetPrompt.bind(this.handlers),
+      },
+      {
+        schema: CompleteRequestSchema,
+        method: 'completion/complete',
+        handler: this.handlers.handleComplete.bind(this.handlers),
+      },
     ];
 
     for (const { schema, method, handler } of requestHandlers) {
@@ -141,7 +171,7 @@ export class ProtocolManager extends EventEmitter {
 
     // Register notification handlers
     this.server.setNotificationHandler(
-      SetLevelRequestSchema as any, 
+      SetLevelRequestSchema as any,
       wrapHandler('notifications/setLevel', this.handlers.handleSetLevel.bind(this.handlers))
     );
 
@@ -158,11 +188,11 @@ export class ProtocolManager extends EventEmitter {
     this.connectionHandler.on('connect', (info) => {
       this.emit('connection', info.id);
     });
-    
+
     this.connectionHandler.on('disconnect', (id) => {
       this.emit('disconnection', id);
     });
-    
+
     this.connectionHandler.on('activity', (id) => {
       // Activity tracking
     });
@@ -181,16 +211,16 @@ export class ProtocolManager extends EventEmitter {
     try {
       // Register connection
       this.currentConnectionId = await this.connectionHandler.registerConnection(transport);
-      
+
       await this.server.connect(transport);
       this.isConnected = true;
-      
+
       this.logger.info('Successfully connected to transport', {
-        connectionId: this.currentConnectionId
+        connectionId: this.currentConnectionId,
       });
     } catch (error) {
-      this.logger.error('Failed to connect to transport', { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.error('Failed to connect to transport', {
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -211,14 +241,14 @@ export class ProtocolManager extends EventEmitter {
       if (this.currentConnectionId) {
         this.connectionHandler.unregisterConnection(this.currentConnectionId);
       }
-      
+
       await this.server.close();
       this.isConnected = false;
-      
+
       this.logger.info('Successfully disconnected from transport');
     } catch (error) {
-      this.logger.error('Error during disconnect', { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.error('Error during disconnect', {
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -229,18 +259,18 @@ export class ProtocolManager extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     this.logger.info('Shutting down protocol manager');
-    
+
     // Disconnect if connected
     if (this.isConnected) {
       await this.disconnect();
     }
-    
+
     // Shutdown connection handler
     await this.connectionHandler.shutdown();
-    
+
     // Remove all listeners
     this.removeAllListeners();
-    
+
     this.logger.info('Protocol manager shutdown complete');
   }
 
@@ -269,8 +299,8 @@ export class ProtocolManager extends EventEmitter {
    * Update configuration
    */
   updateConfig(config: Partial<ServerConfig>): void {
-    this.logger.info('Updating protocol configuration', { 
-      updates: Object.keys(config) 
+    this.logger.info('Updating protocol configuration', {
+      updates: Object.keys(config),
     });
 
     // Update handlers with new config
@@ -283,7 +313,7 @@ export class ProtocolManager extends EventEmitter {
    */
   getStats() {
     const connectionStats = this.connectionHandler.getStats();
-    
+
     return {
       connected: this.isConnected,
       serverInfo: this.handlers.getServerInfo(),

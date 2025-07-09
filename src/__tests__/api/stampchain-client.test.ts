@@ -5,7 +5,12 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 import axios from 'axios';
 import { StampchainClient } from '../../api/stampchain-client.js';
-import { createMockAxiosResponse, createMockStamp, createMockCollection, createMockToken } from '../utils/test-helpers.js';
+import {
+  createMockAxiosResponse,
+  createMockStamp,
+  createMockCollection,
+  createMockToken,
+} from '../utils/test-helpers.js';
 
 // Get the mocked axios instance
 vi.mock('axios');
@@ -48,17 +53,17 @@ describe('StampchainClient', () => {
         timeout: 5000,
       },
     };
-    
+
     // Make axios.create return our mock instance
     vi.mocked(axios.create).mockReturnValue(mockAxiosInstance as never);
-    
+
     client = new StampchainClient({
       baseURL: 'https://test.stampchain.io/api',
       timeout: 5000,
       retries: 1,
       retryDelay: 100,
     });
-    
+
     // Reset all mocks
     vi.clearAllMocks();
   });
@@ -86,9 +91,11 @@ describe('StampchainClient', () => {
   describe('getStamp', () => {
     it('should fetch stamp data successfully', async () => {
       const mockStamp = createMockStamp();
-      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({
-        data: { stamp: mockStamp }
-      }));
+      mockAxiosInstance.get.mockResolvedValueOnce(
+        createMockAxiosResponse({
+          data: { stamp: mockStamp },
+        })
+      );
 
       const result = await client.getStamp(12345);
 
@@ -105,11 +112,11 @@ describe('StampchainClient', () => {
 
     it('should handle 404 errors for non-existent stamps', async () => {
       mockAxiosInstance.get.mockRejectedValueOnce({
-        response: { status: 404, data: { error: 'Stamp not found' } }
+        response: { status: 404, data: { error: 'Stamp not found' } },
       });
 
       await expect(client.getStamp(99999)).rejects.toMatchObject({
-        response: { status: 404 }
+        response: { status: 404 },
       });
     });
   });
@@ -117,14 +124,16 @@ describe('StampchainClient', () => {
   describe('searchStamps', () => {
     it('should search stamps with default parameters', async () => {
       const mockStamps = [createMockStamp(), createMockStamp({ stamp: 12346 })];
-      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({
-        data: mockStamps
-      }));
+      mockAxiosInstance.get.mockResolvedValueOnce(
+        createMockAxiosResponse({
+          data: mockStamps,
+        })
+      );
 
       const result = await client.searchStamps();
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps', {
-        params: {}
+        params: {},
       });
       expect(result).toEqual(mockStamps);
     });
@@ -163,13 +172,13 @@ describe('StampchainClient', () => {
       const result = await client.getRecentStamps();
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps', {
-        params: { limit: 20 }
+        params: { limit: 20 },
       });
       expect(result).toEqual(mockStamps);
     });
 
     it('should fetch recent stamps with custom limit', async () => {
-      const mockStamps = Array.from({ length: 25 }, (_, i) => 
+      const mockStamps = Array.from({ length: 25 }, (_, i) =>
         createMockStamp({ stamp: 12345 + i })
       );
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({ data: mockStamps }));
@@ -177,7 +186,7 @@ describe('StampchainClient', () => {
       const result = await client.getRecentStamps(25);
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps', {
-        params: { limit: 25 }
+        params: { limit: 25 },
       });
       expect(result).toEqual(mockStamps);
     });
@@ -196,32 +205,35 @@ describe('StampchainClient', () => {
 
     it('should handle non-existent collections', async () => {
       mockAxiosInstance.get.mockRejectedValueOnce({
-        response: { status: 404, data: { error: 'Collection not found' } }
+        response: { status: 404, data: { error: 'Collection not found' } },
       });
 
       await expect(client.getCollection('nonexistent')).rejects.toMatchObject({
-        response: { status: 404 }
+        response: { status: 404 },
       });
     });
   });
 
   describe('searchCollections', () => {
     it('should search collections with default parameters', async () => {
-      const mockCollections = [createMockCollection(), createMockCollection({ collection_id: 'test-2' })];
+      const mockCollections = [
+        createMockCollection(),
+        createMockCollection({ collection_id: 'test-2' }),
+      ];
       const mockResponse = {
         data: mockCollections,
         last_block: 844755,
         page: 1,
         limit: 10,
         totalPages: 1,
-        total: 2
+        total: 2,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockResponse));
 
       const result = await client.searchCollections();
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/collections', {
-        params: {}
+        params: {},
       });
       expect(result).toEqual(mockCollections);
     });
@@ -234,7 +246,7 @@ describe('StampchainClient', () => {
         page: 1,
         limit: 5,
         totalPages: 1,
-        total: 1
+        total: 1,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockResponse));
 
@@ -282,14 +294,14 @@ describe('StampchainClient', () => {
         page: 1,
         limit: 10,
         totalPages: 1,
-        total: 2
+        total: 2,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockResponse));
 
       const result = await client.searchTokens();
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/src20', {
-        params: {}
+        params: {},
       });
       expect(result).toEqual(mockTokens);
     });
@@ -302,7 +314,7 @@ describe('StampchainClient', () => {
         page: 1,
         limit: 20,
         totalPages: 1,
-        total: 1
+        total: 1,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockResponse));
 
@@ -329,29 +341,29 @@ describe('StampchainClient', () => {
 
     it('should handle server errors', async () => {
       mockAxiosInstance.get.mockRejectedValueOnce({
-        response: { 
-          status: 500, 
+        response: {
+          status: 500,
           statusText: 'Internal Server Error',
-          data: { error: 'Database connection failed' }
-        }
+          data: { error: 'Database connection failed' },
+        },
       });
 
       await expect(client.getStamp(12345)).rejects.toMatchObject({
-        response: { status: 500 }
+        response: { status: 500 },
       });
     });
 
     it('should handle rate limiting', async () => {
       mockAxiosInstance.get.mockRejectedValueOnce({
-        response: { 
-          status: 429, 
+        response: {
+          status: 429,
           statusText: 'Too Many Requests',
-          data: { error: 'Rate limit exceeded' }
-        }
+          data: { error: 'Rate limit exceeded' },
+        },
       });
 
       await expect(client.getStamp(12345)).rejects.toMatchObject({
-        response: { status: 429 }
+        response: { status: 429 },
       });
     });
   });
@@ -372,8 +384,8 @@ describe('StampchainClient', () => {
         requestedVersion: '2.3',
         versions: [
           { version: '2.3', status: 'current', releaseDate: '2025-01-15' },
-          { version: '2.2', status: 'supported', releaseDate: '2024-06-01' }
-        ]
+          { version: '2.2', status: 'supported', releaseDate: '2024-06-01' },
+        ],
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockVersions));
 
@@ -433,24 +445,24 @@ describe('StampchainClient', () => {
             block_index: 844755,
             stamp_id: 12345,
             price_btc: 0.001,
-            price_usd: 50.00,
+            price_usd: 50.0,
             timestamp: 1704067200,
             buyer_address: 'bc1qtest123',
-            time_ago: '2h ago'
-          }
+            time_ago: '2h ago',
+          },
         ],
         metadata: {
           dayRange: 30,
           lastUpdated: 1704067200000,
-          total: 1
+          total: 1,
         },
-        last_block: 844755
+        last_block: 844755,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockSalesData));
 
       const result = await client.getRecentSales({ dayRange: 30, fullDetails: true });
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/recentSales', {
-        params: { dayRange: 30, fullDetails: true }
+        params: { dayRange: 30, fullDetails: true },
       });
       expect(result).toEqual(mockSalesData);
     });
@@ -472,23 +484,23 @@ describe('StampchainClient', () => {
         data: [
           {
             floorPrice: 0.001,
-            floorPriceUSD: 50.00,
+            floorPriceUSD: 50.0,
             marketCapUSD: 1000000,
             activityLevel: 'HOT',
             lastActivityTime: 1704067200,
-            volume24h: 0.5
-          }
+            volume24h: 0.5,
+          },
         ],
         last_block: 844755,
         page: 1,
         limit: 20,
-        total: 1
+        total: 1,
       };
       mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse(mockMarketData));
 
       const result = await client.getMarketData({ activity_level: 'HOT' });
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/marketData', {
-        params: { activity_level: 'HOT' }
+        params: { activity_level: 'HOT' },
       });
       expect(result).toEqual(mockMarketData);
     });
@@ -496,17 +508,19 @@ describe('StampchainClient', () => {
     it('should get stamp market data', async () => {
       const mockStampMarketData = {
         floorPrice: 0.001,
-        floorPriceUSD: 50.00,
+        floorPriceUSD: 50.0,
         marketCapUSD: 100000,
         activityLevel: 'WARM',
         lastActivityTime: 1704067200,
         volume24h: 0.1,
         lastSaleTxHash: 'abcd1234',
-        lastSaleBuyerAddress: 'bc1qtest123'
+        lastSaleBuyerAddress: 'bc1qtest123',
       };
-      mockAxiosInstance.get.mockResolvedValueOnce(createMockAxiosResponse({
-        data: mockStampMarketData
-      }));
+      mockAxiosInstance.get.mockResolvedValueOnce(
+        createMockAxiosResponse({
+          data: mockStampMarketData,
+        })
+      );
 
       const result = await client.getStampMarketData(12345);
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/stamps/12345/marketData');

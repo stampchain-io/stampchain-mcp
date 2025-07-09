@@ -3,20 +3,20 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
  * Tests for stamp-related MCP tools
  */
 
-import { 
-  GetStampTool, 
-  SearchStampsTool, 
+import {
+  GetStampTool,
+  SearchStampsTool,
   GetRecentStampsTool,
   GetRecentSalesTool,
   GetMarketDataTool,
-  GetStampMarketDataTool
+  GetStampMarketDataTool,
 } from '../../tools/stamps.js';
-import { 
+import {
   createMockToolContext,
   createMockStamp,
   createMockRecentSalesResponse,
   createMockStampMarketData,
-  expectToThrow
+  expectToThrow,
 } from '../utils/test-helpers.js';
 
 describe('Stamps Tools', () => {
@@ -35,7 +35,9 @@ describe('Stamps Tools', () => {
 
     it('should have correct metadata', () => {
       expect(tool.name).toBe('get_stamp');
-      expect(tool.description).toContain('Retrieve detailed information about a specific Bitcoin stamp');
+      expect(tool.description).toContain(
+        'Retrieve detailed information about a specific Bitcoin stamp'
+      );
       expect(tool.inputSchema).toBeDefined();
     });
 
@@ -58,10 +60,7 @@ describe('Stamps Tools', () => {
       const apiError = new Error('Stamp not found');
       mockContext.apiClient.getStamp.mockRejectedValueOnce(apiError);
 
-      await expectToThrow(
-        () => tool.execute({ stamp_id: 99999 }, mockContext),
-        'Stamp not found'
-      );
+      await expectToThrow(() => tool.execute({ stamp_id: 99999 }, mockContext), 'Stamp not found');
 
       expect(mockContext.apiClient.getStamp).toHaveBeenCalledWith(99999);
     });
@@ -79,10 +78,7 @@ describe('Stamps Tools', () => {
     });
 
     it('should handle missing parameters', async () => {
-      await expectToThrow(
-        () => tool.execute({} as any, mockContext),
-        'Validation failed'
-      );
+      await expectToThrow(() => tool.execute({} as any, mockContext), 'Validation failed');
     });
   });
 
@@ -108,7 +104,7 @@ describe('Stamps Tools', () => {
       expect(mockContext.apiClient.searchStamps).toHaveBeenCalledWith({
         page: 1,
         page_size: 20,
-        sort_order: "DESC"
+        sort_order: 'DESC',
       });
       expect(result.content).toHaveLength(2);
       expect(result.content[0].text).toContain('Found 2 stamps');
@@ -134,7 +130,7 @@ describe('Stamps Tools', () => {
         collection_id: 'test-collection',
         page_size: 5,
         page: 1,
-        sort_order: "DESC"
+        sort_order: 'DESC',
       });
       expect(result.content).toHaveLength(2);
       expect(result.content[0].text).toContain('Found 1 stamp');
@@ -149,10 +145,7 @@ describe('Stamps Tools', () => {
     });
 
     it('should validate search parameters', async () => {
-      await expectToThrow(
-        () => tool.execute({ page_size: 0 }, mockContext),
-        'Validation failed'
-      );
+      await expectToThrow(() => tool.execute({ page_size: 0 }, mockContext), 'Validation failed');
 
       await expectToThrow(
         () => tool.execute({ page_size: 1001 }, mockContext),
@@ -169,10 +162,7 @@ describe('Stamps Tools', () => {
       const apiError = new Error('API temporarily unavailable');
       mockContext.apiClient.searchStamps.mockRejectedValueOnce(apiError);
 
-      await expectToThrow(
-        () => tool.execute({}, mockContext),
-        'API temporarily unavailable'
-      );
+      await expectToThrow(() => tool.execute({}, mockContext), 'API temporarily unavailable');
     });
   });
 
@@ -190,7 +180,7 @@ describe('Stamps Tools', () => {
     });
 
     it('should execute with default limit', async () => {
-      const mockStamps = Array.from({ length: 10 }, (_, i) => 
+      const mockStamps = Array.from({ length: 10 }, (_, i) =>
         createMockStamp({ stamp: 12345 + i })
       );
       mockContext.apiClient.searchStamps.mockResolvedValueOnce(mockStamps);
@@ -207,7 +197,7 @@ describe('Stamps Tools', () => {
     });
 
     it('should execute with custom limit', async () => {
-      const mockStamps = Array.from({ length: 25 }, (_, i) => 
+      const mockStamps = Array.from({ length: 25 }, (_, i) =>
         createMockStamp({ stamp: 12345 + i })
       );
       mockContext.apiClient.searchStamps.mockResolvedValueOnce(mockStamps);
@@ -218,7 +208,7 @@ describe('Stamps Tools', () => {
         sort_order: 'DESC',
         page: 1,
         page_size: 25,
-        is_cursed: undefined
+        is_cursed: undefined,
       });
       expect(result.content[0].text).toContain('25 Most Recent Stamps');
     });
@@ -232,30 +222,18 @@ describe('Stamps Tools', () => {
     });
 
     it('should validate limit parameter', async () => {
-      await expectToThrow(
-        () => tool.execute({ limit: 0 }, mockContext),
-        'Validation failed'
-      );
+      await expectToThrow(() => tool.execute({ limit: 0 }, mockContext), 'Validation failed');
 
-      await expectToThrow(
-        () => tool.execute({ limit: 1001 }, mockContext),
-        'Validation failed'
-      );
+      await expectToThrow(() => tool.execute({ limit: 1001 }, mockContext), 'Validation failed');
 
-      await expectToThrow(
-        () => tool.execute({ limit: -5 }, mockContext),
-        'Validation failed'
-      );
+      await expectToThrow(() => tool.execute({ limit: -5 }, mockContext), 'Validation failed');
     });
 
     it('should handle API errors', async () => {
       const apiError = new Error('Database connection failed');
       mockContext.apiClient.searchStamps.mockRejectedValueOnce(apiError);
 
-      await expectToThrow(
-        () => tool.execute({}, mockContext),
-        'Database connection failed'
-      );
+      await expectToThrow(() => tool.execute({}, mockContext), 'Database connection failed');
     });
 
     it('should handle stamp without block_time field', async () => {
@@ -289,10 +267,13 @@ describe('Stamps Tools', () => {
       ];
       mockContext.apiClient.searchStamps.mockResolvedValueOnce(mockCollectionStamps);
 
-      await searchTool.execute({ 
-        collection_id: 'popular-collection',
-        page_size: 10 
-      }, mockContext);
+      await searchTool.execute(
+        {
+          collection_id: 'popular-collection',
+          page_size: 10,
+        },
+        mockContext
+      );
 
       // Finally, get details for a specific stamp
       const getTool = new GetStampTool();
@@ -306,13 +287,13 @@ describe('Stamps Tools', () => {
         sort_order: 'DESC',
         page: 1,
         page_size: 2,
-        is_cursed: undefined
+        is_cursed: undefined,
       });
       expect(mockContext.apiClient.searchStamps).toHaveBeenCalledWith({
         collection_id: 'popular-collection',
         page_size: 10,
         page: 1,
-        sort_order: "DESC"
+        sort_order: 'DESC',
       });
       expect(mockContext.apiClient.getStamp).toHaveBeenCalledWith(12340);
     });

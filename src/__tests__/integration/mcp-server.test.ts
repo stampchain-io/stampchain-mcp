@@ -26,7 +26,9 @@ describe('MCP Server Integration', () => {
   let config: ReturnType<typeof loadConfiguration>;
 
   type CallToolHandler = (request: CallToolRequest) => Promise<ToolResponse>;
-  type ListToolsHandler = () => { tools: Array<{ name: string; description: string; inputSchema: unknown }> };
+  type ListToolsHandler = () => {
+    tools: Array<{ name: string; description: string; inputSchema: unknown }>;
+  };
 
   let callToolHandler: CallToolHandler;
   let listToolsHandler: ListToolsHandler;
@@ -34,7 +36,7 @@ describe('MCP Server Integration', () => {
   beforeEach(() => {
     // Load test configuration
     config = loadConfiguration({
-      cliArgs: { logLevel: 'error' } // Suppress logs during tests
+      cliArgs: { logLevel: 'error' }, // Suppress logs during tests
     });
 
     // Initialize tool registry
@@ -83,7 +85,9 @@ describe('MCP Server Integration', () => {
     );
 
     // Register handlers (simplified version of main server logic)
-    listToolsHandler = (): { tools: Array<{ name: string; description: string; inputSchema: unknown }> } => {
+    listToolsHandler = (): {
+      tools: Array<{ name: string; description: string; inputSchema: unknown }>;
+    } => {
       const tools = toolRegistry.getMCPTools();
       return { tools };
     };
@@ -91,10 +95,10 @@ describe('MCP Server Integration', () => {
 
     callToolHandler = async (request: CallToolRequest): Promise<ToolResponse> => {
       const { name: toolName, arguments: args } = request.params;
-      
+
       try {
         const tool = toolRegistry.get(toolName);
-        
+
         const context: ToolContext = {
           logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
           apiClient: mockApiClient,
@@ -121,15 +125,15 @@ describe('MCP Server Integration', () => {
   describe('Server Initialization', () => {
     it('should initialize with all expected tools', () => {
       const stats = toolRegistry.getStats();
-      
+
       expect(stats.totalTools).toBe(10); // All 10 tools should be registered (7 original + 3 v2.3 tools)
-              expect(stats.enabledTools).toBe(10);
+      expect(stats.enabledTools).toBe(10);
       expect(stats.categories).toBe(3); // stamps, collections, tokens
     });
 
     it('should have correct tool categories', () => {
       const categories = toolRegistry.getCategories();
-      
+
       expect(categories).toContain('Bitcoin Stamps');
       expect(categories).toContain('Stamp Collections');
       expect(categories).toContain('SRC-20 Tokens');
@@ -137,17 +141,17 @@ describe('MCP Server Integration', () => {
 
     it('should register all expected tools', () => {
       const tools = toolRegistry.list();
-      const toolNames = tools.map(t => t.name);
-      
+      const toolNames = tools.map((t) => t.name);
+
       // Stamp tools
       expect(toolNames).toContain('get_stamp');
       expect(toolNames).toContain('search_stamps');
       expect(toolNames).toContain('get_recent_stamps');
-      
+
       // Collection tools
       expect(toolNames).toContain('get_collection');
       expect(toolNames).toContain('search_collections');
-      
+
       // Token tools
       expect(toolNames).toContain('get_token_info');
       expect(toolNames).toContain('search_tokens');
@@ -158,20 +162,22 @@ describe('MCP Server Integration', () => {
     it('should return all available tools', () => {
       // Get tools from registry
       const mcpTools = toolRegistry.getMCPTools();
-      
+
       expect(mcpTools).toHaveLength(10);
-      expect(mcpTools.every(tool => 
-        tool.name && tool.description && tool.inputSchema
-      )).toBe(true);
+      expect(mcpTools.every((tool) => tool.name && tool.description && tool.inputSchema)).toBe(
+        true
+      );
     });
 
     it('should return tools with correct MCP format', () => {
       // Get tools from registry
       const mcpTools = toolRegistry.getMCPTools();
-      
-      const stampTool = mcpTools.find(t => t.name === 'get_stamp');
+
+      const stampTool = mcpTools.find((t) => t.name === 'get_stamp');
       expect(stampTool).toBeDefined();
-      expect(stampTool!.description).toContain('Retrieve detailed information about a specific Bitcoin stamp');
+      expect(stampTool!.description).toContain(
+        'Retrieve detailed information about a specific Bitcoin stamp'
+      );
       expect(stampTool!.inputSchema.type).toBe('object');
       expect(stampTool!.inputSchema.properties).toBeDefined();
     });
@@ -187,8 +193,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_stamp',
-            arguments: { stamp_id: 12345 }
-          }
+            arguments: { stamp_id: 12345 },
+          },
         });
 
         expect(mockApiClient.getStamp).toHaveBeenCalledWith(12345);
@@ -206,24 +212,24 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'search_stamps',
-            arguments: { 
+            arguments: {
               creator: 'bc1qtest123456789012345678901234567890',
-              limit: 10 
-            }
-          }
+              limit: 10,
+            },
+          },
         });
 
         expect(mockApiClient.searchStamps).toHaveBeenCalledWith({
           creator: 'bc1qtest123456789012345678901234567890',
           sort_order: 'DESC',
           page: 1,
-          page_size: 20
+          page_size: 20,
         });
         expect(result.content[0].text).toContain('Found 2 stamps');
       });
 
       it('should execute get_recent_stamps tool', async () => {
-        const mockStamps = Array.from({ length: 5 }, (_, i) => 
+        const mockStamps = Array.from({ length: 5 }, (_, i) =>
           createMockStamp({ stamp: 12345 + i })
         );
         const searchStampsMock = vi.mocked(mockApiClient.searchStamps);
@@ -233,15 +239,15 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_recent_stamps',
-            arguments: { limit: 5 }
-          }
+            arguments: { limit: 5 },
+          },
         });
 
         expect(mockApiClient.searchStamps).toHaveBeenCalledWith({
           sort_order: 'DESC',
           page: 1,
           page_size: 5,
-          is_cursed: undefined
+          is_cursed: undefined,
         });
         expect(result.content[0].text).toContain('5 Most Recent Stamps');
       });
@@ -257,14 +263,14 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_collection',
-            arguments: { collection_id: 'test-collection' }
-          }
+            arguments: { collection_id: 'test-collection' },
+          },
         });
 
         expect(mockApiClient.searchCollections).toHaveBeenCalledWith({
           query: 'test-collection',
           page: 1,
-          page_size: 1
+          page_size: 1,
         });
         expect(result.content[0].text).toContain('Collection: Test Collection');
       });
@@ -278,8 +284,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'search_collections',
-            arguments: { creator: 'bc1qtest123456789012345678901234567890' }
-          }
+            arguments: { creator: 'bc1qtest123456789012345678901234567890' },
+          },
         });
 
         expect(mockApiClient.searchCollections).toHaveBeenCalledWith({
@@ -287,7 +293,7 @@ describe('MCP Server Integration', () => {
           sort_by: 'created_at',
           sort_order: 'DESC',
           page: 1,
-          page_size: 20
+          page_size: 20,
         });
         expect(result.content[0].text).toContain('Found 1 collection');
       });
@@ -303,14 +309,14 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_token_info',
-            arguments: { tick: 'TEST' }
-          }
+            arguments: { tick: 'TEST' },
+          },
         });
 
         expect(mockApiClient.searchTokens).toHaveBeenCalledWith({
           query: 'TEST',
           page: 1,
-          page_size: 1
+          page_size: 1,
         });
         expect(result.content[0].text).toContain('Token: TEST');
       });
@@ -324,15 +330,15 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'search_tokens',
-            arguments: { min_holders: 100 }
-          }
+            arguments: { min_holders: 100 },
+          },
         });
 
         expect(mockApiClient.searchTokens).toHaveBeenCalledWith({
           sort_by: 'deploy_timestamp',
           sort_order: 'DESC',
           page: 1,
-          page_size: 20
+          page_size: 20,
         });
         expect(result.content[0].text).toContain('Found 2 tokens');
       });
@@ -344,8 +350,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'non_existent_tool',
-            arguments: {}
-          }
+            arguments: {},
+          },
         });
 
         expect(result.isError).toBe(true);
@@ -357,8 +363,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_stamp',
-            arguments: { stamp_id: -1 } // Invalid negative ID
-          }
+            arguments: { stamp_id: -1 }, // Invalid negative ID
+          },
         });
 
         expect(result.isError).toBe(true);
@@ -373,8 +379,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_stamp',
-            arguments: { stamp_id: 12345 }
-          }
+            arguments: { stamp_id: 12345 },
+          },
         });
 
         expect(result.isError).toBe(true);
@@ -386,8 +392,8 @@ describe('MCP Server Integration', () => {
         const result = await callToolHandler({
           params: {
             name: 'get_stamp',
-            arguments: {} // Missing stamp_id
-          }
+            arguments: {}, // Missing stamp_id
+          },
         });
 
         expect(result.isError).toBe(true);
@@ -401,15 +407,12 @@ describe('MCP Server Integration', () => {
       // Use the handler from beforeEach
 
       // Step 1: Get recent stamps
-      const recentStamps = [
-        createMockStamp({ stamp: 12345 }),
-        createMockStamp({ stamp: 12346 }),
-      ];
+      const recentStamps = [createMockStamp({ stamp: 12345 }), createMockStamp({ stamp: 12346 })];
       const searchStampsMock = vi.mocked(mockApiClient.searchStamps);
       searchStampsMock.mockResolvedValueOnce(recentStamps);
 
       await callToolHandler({
-        params: { name: 'get_recent_stamps', arguments: { limit: 2 } }
+        params: { name: 'get_recent_stamps', arguments: { limit: 2 } },
       });
 
       // Step 2: Search for more stamps in the collection
@@ -420,10 +423,10 @@ describe('MCP Server Integration', () => {
       searchStampsMock.mockResolvedValueOnce(collectionStamps);
 
       await callToolHandler({
-        params: { 
-          name: 'search_stamps', 
-          arguments: { collection_id: 'popular-collection', limit: 10 } 
-        }
+        params: {
+          name: 'search_stamps',
+          arguments: { collection_id: 'popular-collection', limit: 10 },
+        },
       });
 
       // Step 3: Get collection details
@@ -432,10 +435,10 @@ describe('MCP Server Integration', () => {
       searchCollectionsMock.mockResolvedValueOnce(collectionInfo);
 
       await callToolHandler({
-        params: { 
-          name: 'get_collection', 
-          arguments: { collection_id: 'popular-collection' } 
-        }
+        params: {
+          name: 'get_collection',
+          arguments: { collection_id: 'popular-collection' },
+        },
       });
 
       // Verify all API calls were made correctly
@@ -443,18 +446,18 @@ describe('MCP Server Integration', () => {
         sort_order: 'DESC',
         page: 1,
         page_size: 2,
-        is_cursed: undefined
+        is_cursed: undefined,
       });
       expect(mockApiClient.searchStamps).toHaveBeenCalledWith({
         collection_id: 'popular-collection',
         sort_order: 'DESC',
         page: 1,
-        page_size: 20
+        page_size: 20,
       });
       expect(mockApiClient.searchCollections).toHaveBeenCalledWith({
         query: 'popular-collection',
         page: 1,
-        page_size: 1
+        page_size: 1,
       });
     });
 
@@ -470,10 +473,10 @@ describe('MCP Server Integration', () => {
       searchTokensMock.mockResolvedValueOnce(popularTokens);
 
       await callToolHandler({
-        params: { 
-          name: 'search_tokens', 
-          arguments: { min_holders: 1000, limit: 10 } 
-        }
+        params: {
+          name: 'search_tokens',
+          arguments: { min_holders: 1000, limit: 10 },
+        },
       });
 
       // Step 2: Get detailed info for specific token
@@ -481,10 +484,10 @@ describe('MCP Server Integration', () => {
       searchTokensMock.mockResolvedValueOnce(tokenInfo);
 
       await callToolHandler({
-        params: { 
-          name: 'get_token_info', 
-          arguments: { tick: 'UNCOMMON' } 
-        }
+        params: {
+          name: 'get_token_info',
+          arguments: { tick: 'UNCOMMON' },
+        },
       });
 
       // Verify API calls
@@ -492,12 +495,12 @@ describe('MCP Server Integration', () => {
         sort_by: 'deploy_timestamp',
         sort_order: 'DESC',
         page: 1,
-        page_size: 20
+        page_size: 20,
       });
       expect(mockApiClient.searchTokens).toHaveBeenCalledWith({
         query: 'UNCOMMON',
         page: 1,
-        page_size: 1
+        page_size: 1,
       });
     });
   });

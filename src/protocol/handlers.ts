@@ -3,7 +3,7 @@
  * Implements handlers for various MCP protocol requests
  */
 
-import type { 
+import type {
   Result,
   CallToolRequest,
   ListToolsRequest,
@@ -45,17 +45,19 @@ export class ProtocolHandlers {
     this.toolRegistry = options.toolRegistry;
     this.apiClient = options.apiClient;
     this.config = options.config;
-    this.logger = options.logger || createLogger('protocol', { 
-      level: options.config.logging.level 
-    });
-    
+    this.logger =
+      options.logger ||
+      createLogger('protocol', {
+        level: options.config.logging.level,
+      });
+
     // Initialize middleware
     this.middleware = options.middleware || new MiddlewareManager(options.config);
-    
+
     // Add default middleware if none provided
     if (!options.middleware) {
       const defaultMiddleware = createDefaultMiddleware(options.config);
-      defaultMiddleware.forEach(mw => this.middleware.use(mw));
+      defaultMiddleware.forEach((mw) => this.middleware.use(mw));
     }
   }
 
@@ -64,22 +66,19 @@ export class ProtocolHandlers {
    */
   handleListTools(_request: ListToolsRequest): Result {
     this.logger.debug('Handling list tools request');
-    
+
     try {
       const tools = this.toolRegistry.getMCPTools();
-      
-      this.logger.info('Listed tools', { 
+
+      this.logger.info('Listed tools', {
         count: tools.length,
-        categories: this.toolRegistry.getCategories()
+        categories: this.toolRegistry.getCategories(),
       });
-      
+
       return { tools };
     } catch (error) {
       this.logger.error('Failed to list tools', { error });
-      throw new McpError(
-        ErrorCode.InternalError,
-        'Failed to list available tools'
-      );
+      throw new McpError(ErrorCode.InternalError, 'Failed to list available tools');
     }
   }
 
@@ -88,10 +87,10 @@ export class ProtocolHandlers {
    */
   async handleCallTool(request: CallToolRequest): Promise<Result> {
     const { name: toolName, arguments: args } = request.params;
-    
-    this.logger.debug('Handling tool call request', { 
+
+    this.logger.debug('Handling tool call request', {
       tool: toolName,
-      hasArgs: !!args 
+      hasArgs: !!args,
     });
 
     try {
@@ -100,8 +99,8 @@ export class ProtocolHandlers {
 
       // Create execution context
       const context: ToolContext = {
-        logger: createLogger(`tool:${toolName}`, { 
-          level: this.config.logging.level 
+        logger: createLogger(`tool:${toolName}`, {
+          level: this.config.logging.level,
         }),
         apiClient: this.apiClient,
         config: this.config,
@@ -112,47 +111,33 @@ export class ProtocolHandlers {
       const result = await tool.execute(args || {}, context);
       const duration = Date.now() - startTime;
 
-      this.logger.info('Tool executed successfully', { 
+      this.logger.info('Tool executed successfully', {
         tool: toolName,
         duration,
-        contentItems: result.content.length
+        contentItems: result.content.length,
       });
 
       return result as unknown as Result;
-
     } catch (error) {
       this.logger.error('Tool execution failed', {
         tool: toolName,
         error: error instanceof Error ? error.message : String(error),
-        ...(this.config.development.enableStackTraces && error instanceof Error 
-          ? { stack: error.stack } 
-          : {}
-        ),
+        ...(this.config.development.enableStackTraces && error instanceof Error
+          ? { stack: error.stack }
+          : {}),
       });
 
       // Convert errors to appropriate MCP errors
       if (error instanceof McpError) {
         throw error;
       } else if (error instanceof ValidationError) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Validation Error: ${error.message}`
-        );
+        throw new McpError(ErrorCode.InvalidParams, `Validation Error: ${error.message}`);
       } else if (error instanceof ToolExecutionError) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Execution Error: ${error.message}`
-        );
+        throw new McpError(ErrorCode.InternalError, `Execution Error: ${error.message}`);
       } else if (error instanceof Error) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          error.message
-        );
+        throw new McpError(ErrorCode.InternalError, error.message);
       } else {
-        throw new McpError(
-          ErrorCode.InternalError,
-          'An unknown error occurred'
-        );
+        throw new McpError(ErrorCode.InternalError, 'An unknown error occurred');
       }
     }
   }
@@ -162,7 +147,7 @@ export class ProtocolHandlers {
    */
   handleListResources(_request: ListResourcesRequest): Result {
     this.logger.debug('Handling list resources request');
-    
+
     // This server doesn't provide resources, only tools
     return { resources: [] };
   }
@@ -171,10 +156,10 @@ export class ProtocolHandlers {
    * Handle resource reading requests (not implemented for this server)
    */
   handleReadResource(request: ReadResourceRequest): Result {
-    this.logger.debug('Handling read resource request', { 
-      uri: request.params.uri 
+    this.logger.debug('Handling read resource request', {
+      uri: request.params.uri,
     });
-    
+
     throw new McpError(
       ErrorCode.MethodNotFound,
       'Resource reading is not supported by this server'
@@ -186,7 +171,7 @@ export class ProtocolHandlers {
    */
   handleListPrompts(_request: ListPromptsRequest): Result {
     this.logger.debug('Handling list prompts request');
-    
+
     // This server doesn't provide prompts, only tools
     return { prompts: [] };
   }
@@ -195,10 +180,10 @@ export class ProtocolHandlers {
    * Handle prompt retrieval requests (not implemented for this server)
    */
   handleGetPrompt(request: GetPromptRequest): Result {
-    this.logger.debug('Handling get prompt request', { 
-      name: request.params.name 
+    this.logger.debug('Handling get prompt request', {
+      name: request.params.name,
     });
-    
+
     throw new McpError(
       ErrorCode.MethodNotFound,
       'Prompt retrieval is not supported by this server'
@@ -210,11 +195,8 @@ export class ProtocolHandlers {
    */
   handleComplete(_request: CompleteRequest): Result {
     this.logger.debug('Handling completion request');
-    
-    throw new McpError(
-      ErrorCode.MethodNotFound,
-      'Completion is not supported by this server'
-    );
+
+    throw new McpError(ErrorCode.MethodNotFound, 'Completion is not supported by this server');
   }
 
   /**
@@ -222,19 +204,18 @@ export class ProtocolHandlers {
    */
   handleSetLevel(notification: SetLevelRequest): void {
     const { level } = notification.params;
-    
-    this.logger.info('Changing log level', { 
+
+    this.logger.info('Changing log level', {
       from: this.config.logging.level,
-      to: level 
+      to: level,
     });
 
     // Update logger level
     this.logger = createLogger('protocol', { level });
-    
+
     // Note: In a full implementation, you'd update all loggers
     // This is a simplified version
   }
-
 
   /**
    * Get server capabilities

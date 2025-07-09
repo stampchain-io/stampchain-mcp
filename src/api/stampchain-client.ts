@@ -124,7 +124,7 @@ export class StampchainClient {
   private handleApiError(error: AxiosError<APIErrorResponse>): MCPError {
     const { response } = error;
     const endpoint = response?.config?.url || 'unknown';
-    
+
     if (!response) {
       // Network error
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
@@ -138,7 +138,9 @@ export class StampchainClient {
 
     // Version-specific error handling
     if (status === 400 && errorMessage.includes('version')) {
-      this.logger.warn(`API version ${this.apiVersion} may not be supported`, { error: errorMessage });
+      this.logger.warn(`API version ${this.apiVersion} may not be supported`, {
+        error: errorMessage,
+      });
       // Could trigger automatic version fallback here
     }
 
@@ -164,14 +166,16 @@ export class StampchainClient {
    */
   private async attemptVersionFallback(originalError: AxiosError): Promise<void> {
     const fallbackVersions = ['2.2', '2.1'];
-    
+
     for (const version of fallbackVersions) {
       if (version === this.apiVersion) continue;
-      
+
       try {
         const isCompatible = await this.testVersionCompatibility(version);
         if (isCompatible) {
-          this.logger.warn(`Falling back to API version ${version} due to error with ${this.apiVersion}`);
+          this.logger.warn(
+            `Falling back to API version ${version} due to error with ${this.apiVersion}`
+          );
           this.setApiVersion(version);
           return;
         }
@@ -179,7 +183,7 @@ export class StampchainClient {
         this.logger.debug(`Version ${version} fallback failed`, { error: fallbackError });
       }
     }
-    
+
     throw originalError;
   }
 
@@ -190,35 +194,42 @@ export class StampchainClient {
     try {
       // First, try to get available versions
       const versionInfo = await this.getAvailableVersions();
-      
+
       // Check if our current version is supported
-      const currentVersionInfo = versionInfo.versions.find(v => v.version === this.apiVersion);
-      
+      const currentVersionInfo = versionInfo.versions.find((v) => v.version === this.apiVersion);
+
       if (!currentVersionInfo) {
         this.logger.warn(`API version ${this.apiVersion} not found in available versions`);
         // Fall back to the current version from server
         this.setApiVersion(versionInfo.current);
         return;
       }
-      
+
       // Check if current version is deprecated or end-of-life
-      if (currentVersionInfo.status === 'deprecated' || currentVersionInfo.status === 'end-of-life') {
-        this.logger.warn(`API version ${this.apiVersion} is ${currentVersionInfo.status}, consider upgrading`);
-        
+      if (
+        currentVersionInfo.status === 'deprecated' ||
+        currentVersionInfo.status === 'end-of-life'
+      ) {
+        this.logger.warn(
+          `API version ${this.apiVersion} is ${currentVersionInfo.status}, consider upgrading`
+        );
+
         // If deprecated, optionally upgrade to current version
         if (currentVersionInfo.status === 'end-of-life') {
           this.logger.info(`Upgrading to current API version ${versionInfo.current}`);
           this.setApiVersion(versionInfo.current);
         }
       }
-      
+
       // Test compatibility with current version
       const isCompatible = await this.testVersionCompatibility(this.apiVersion);
       if (!isCompatible) {
         this.logger.warn(`API version ${this.apiVersion} compatibility test failed`);
-        await this.attemptVersionFallback(new Error('Version compatibility test failed') as AxiosError);
+        await this.attemptVersionFallback(
+          new Error('Version compatibility test failed') as AxiosError
+        );
       }
-      
+
       this.logger.info(`Successfully initialized with API version ${this.apiVersion}`);
     } catch (error) {
       this.logger.error('Version negotiation failed', { error });
@@ -237,7 +248,7 @@ export class StampchainClient {
     cacheStatus: boolean;
   } {
     const majorVersion = parseFloat(this.apiVersion);
-    
+
     return {
       marketData: majorVersion >= 2.3,
       recentSales: majorVersion >= 2.3,
@@ -308,18 +319,18 @@ export class StampchainClient {
    */
   async getRecentSales(params: RecentSalesQueryParams = {}): Promise<RecentSalesResponse> {
     const features = this.getFeatureAvailability();
-    
+
     if (!features.recentSales) {
       // Fallback for older API versions - use regular stamps endpoint
       this.logger.info('Recent sales not available in this API version, using fallback');
-      const stamps = await this.searchStamps({ 
+      const stamps = await this.searchStamps({
         limit: params.page_size || 20,
-        sort_order: params.sort_order || 'DESC'
+        sort_order: params.sort_order || 'DESC',
       });
-      
+
       // Transform to match RecentSalesResponse format
       return {
-        data: stamps.map(stamp => ({
+        data: stamps.map((stamp) => ({
           tx_hash: stamp.tx_hash,
           block_index: stamp.block_index,
           stamp_id: stamp.stamp || 0,
@@ -337,16 +348,17 @@ export class StampchainClient {
     }
 
     return this.executeWithFallback(
-      () => this.client.get<RecentSalesResponse>('/stamps/recentSales', { params }).then(r => r.data),
+      () =>
+        this.client.get<RecentSalesResponse>('/stamps/recentSales', { params }).then((r) => r.data),
       async () => {
         // Fallback implementation for when v2.3 endpoint fails
-        const stamps = await this.searchStamps({ 
+        const stamps = await this.searchStamps({
           limit: params.page_size || 20,
-          sort_order: params.sort_order || 'DESC'
+          sort_order: params.sort_order || 'DESC',
         });
-        
+
         return {
-          data: stamps.map(stamp => ({
+          data: stamps.map((stamp) => ({
             tx_hash: stamp.tx_hash,
             block_index: stamp.block_index,
             stamp_id: stamp.stamp || 0,
@@ -383,7 +395,9 @@ export class StampchainClient {
    * Get market data for a specific stamp (v2.3 feature)
    */
   async getStampMarketData(stampId: number): Promise<StampMarketData> {
-    const response = await this.client.get<{ data: StampMarketData }>(`/stamps/${stampId}/marketData`);
+    const response = await this.client.get<{ data: StampMarketData }>(
+      `/stamps/${stampId}/marketData`
+    );
     return response.data.data;
   }
 

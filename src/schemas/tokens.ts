@@ -71,7 +71,8 @@ export const TokenListResponseSchema = z.object({
 /**
  * Schema for SRC-20 token ticker validation
  */
-export const TokenTickerSchema = z.string()
+export const TokenTickerSchema = z
+  .string()
   .min(1, 'Token ticker cannot be empty')
   .max(10, 'Token ticker cannot exceed 10 characters')
   .regex(/^[A-Z0-9]+$/i, 'Token ticker must contain only alphanumeric characters');
@@ -81,11 +82,21 @@ export const TokenTickerSchema = z.string()
  */
 export const TokenQueryParamsSchema = z.object({
   query: TokenTickerSchema.optional(),
-  deployer: z.string().min(26, 'Deployer address too short').max(62, 'Deployer address too long').optional(),
+  deployer: z
+    .string()
+    .min(26, 'Deployer address too short')
+    .max(62, 'Deployer address too long')
+    .optional(),
   sort_by: z.enum(['deploy_timestamp', 'holders', 'percent_minted']).optional(),
   sort_order: z.enum(['ASC', 'DESC']).optional(),
   page: z.number().int().positive().max(10000, 'Page number too large').optional(),
-  page_size: z.number().int().positive().min(1, 'Page size must be at least 1').max(100, 'Page size cannot exceed 100').optional(),
+  page_size: z
+    .number()
+    .int()
+    .positive()
+    .min(1, 'Page size must be at least 1')
+    .max(100, 'Page size cannot exceed 100')
+    .optional(),
 });
 
 /**
@@ -93,8 +104,16 @@ export const TokenQueryParamsSchema = z.object({
  */
 export const GetTokenInfoParamsSchema = z.object({
   tick: TokenTickerSchema.describe('The ticker symbol of the SRC-20 token'),
-  include_holders: z.boolean().optional().default(false).describe('Whether to include holder statistics'),
-  include_transfers: z.boolean().optional().default(false).describe('Whether to include recent transfer data'),
+  include_holders: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to include holder statistics'),
+  include_transfers: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to include recent transfer data'),
 });
 
 /**
@@ -105,7 +124,11 @@ export const SearchTokensParamsSchema = z.object({
   deployer: z.string().optional().describe('Filter by deployer address'),
   min_holders: z.number().int().nonnegative().optional().describe('Minimum number of holders'),
   min_percent_minted: z.number().min(0).max(100).optional().describe('Minimum percent minted'),
-  sort_by: z.enum(['deploy_timestamp', 'holders', 'percent_minted']).optional().default('deploy_timestamp').describe('Sort field'),
+  sort_by: z
+    .enum(['deploy_timestamp', 'holders', 'percent_minted'])
+    .optional()
+    .default('deploy_timestamp')
+    .describe('Sort field'),
   sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC').describe('Sort order'),
   page: z.number().int().positive().optional().default(1).describe('Page number'),
   page_size: z.number().int().positive().max(100).optional().default(20).describe('Items per page'),
@@ -140,13 +163,15 @@ export const TokenDetailedInfoSchema = z.object({
   token: TokenSchema,
   holders: z.array(TokenHolderSchema).optional(),
   recent_transfers: z.array(TokenTransferSchema).optional(),
-  statistics: z.object({
-    total_supply: z.string(),
-    circulating_supply: z.string(),
-    holder_count: z.number().int().nonnegative(),
-    transfer_count_24h: z.number().int().nonnegative(),
-    market_cap_estimate: z.string().optional(),
-  }).optional(),
+  statistics: z
+    .object({
+      total_supply: z.string(),
+      circulating_supply: z.string(),
+      holder_count: z.number().int().nonnegative(),
+      transfer_count_24h: z.number().int().nonnegative(),
+      market_cap_estimate: z.string().optional(),
+    })
+    .optional(),
 });
 
 /**

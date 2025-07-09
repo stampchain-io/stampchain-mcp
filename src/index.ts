@@ -117,7 +117,7 @@ async function startServer(): Promise<void> {
  */
 async function gracefulShutdown(): Promise<void> {
   logger.info('Shutting down server...');
-  
+
   try {
     if (server && server.getIsRunning()) {
       await server.stop();
@@ -136,7 +136,7 @@ async function gracefulShutdown(): Promise<void> {
 function setupSignalHandlers(): void {
   process.on('SIGINT', gracefulShutdown);
   process.on('SIGTERM', gracefulShutdown);
-  
+
   // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {
     logger.error('Uncaught exception', { error: error.message, stack: error.stack });
@@ -156,11 +156,11 @@ function setupSignalHandlers(): void {
 async function main(): Promise<void> {
   try {
     setupSignalHandlers();
-    
+
     await initializeServer(config);
     await startServer();
   } catch (error) {
-    logger.error('Failed to start server', { 
+    logger.error('Failed to start server', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -175,7 +175,9 @@ const program = new Command();
 
 program
   .name('stampchain-mcp')
-  .description('Stampchain MCP Server - Bitcoin Stamps and SRC-20 token tools for MCP-compatible clients')
+  .description(
+    'Stampchain MCP Server - Bitcoin Stamps and SRC-20 token tools for MCP-compatible clients'
+  )
   .version(packageJson.version);
 
 program
@@ -225,10 +227,10 @@ program
     try {
       config = loadConfiguration({ configFile: options.config });
       const toolRegistry = new ToolRegistry(config.registry);
-      
+
       const apiClient = new StampchainClient(config.api);
       const tools = createAllTools(apiClient);
-      
+
       // Register tools
       for (const [category, metadata] of Object.entries(toolMetadata)) {
         for (const toolName of metadata.tools) {
@@ -238,10 +240,10 @@ program
           }
         }
       }
-      
+
       console.log('\nAvailable Tools:');
       console.log('================');
-      
+
       for (const category of toolRegistry.getCategories()) {
         console.log(`\n${category}:`);
         const categoryTools = toolRegistry.getByCategory(category);
@@ -250,7 +252,7 @@ program
           console.log(`  ${tool.name} - ${tool.description}`);
         }
       }
-      
+
       console.log(`\nTotal: ${toolRegistry.getStats().totalTools} tools`);
     } catch (error) {
       console.error('Error listing tools:', error instanceof Error ? error.message : String(error));

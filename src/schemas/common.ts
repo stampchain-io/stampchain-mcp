@@ -37,26 +37,21 @@ export const BlockInfoSchema = z.object({
 /**
  * Schema for address validation
  */
-export const BitcoinAddressSchema = z.string().regex(
-  /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/,
-  'Invalid Bitcoin address format'
-);
+export const BitcoinAddressSchema = z
+  .string()
+  .regex(/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/, 'Invalid Bitcoin address format');
 
 /**
  * Schema for transaction hash validation
  */
-export const TransactionHashSchema = z.string().regex(
-  /^[a-fA-F0-9]{64}$/,
-  'Invalid transaction hash format'
-);
+export const TransactionHashSchema = z
+  .string()
+  .regex(/^[a-fA-F0-9]{64}$/, 'Invalid transaction hash format');
 
 /**
  * Schema for CPID validation
  */
-export const CPIDSchema = z.string().regex(
-  /^[A-Za-z0-9]+$/,
-  'Invalid CPID format'
-);
+export const CPIDSchema = z.string().regex(/^[A-Za-z0-9]+$/, 'Invalid CPID format');
 
 /**
  * Schema for timestamp validation (ISO 8601)

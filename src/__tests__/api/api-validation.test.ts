@@ -24,7 +24,7 @@ describe('API Response Validation', () => {
         response: { use: vi.fn() },
       },
     };
-    
+
     vi.mocked(axios.create).mockReturnValue(mockAxiosInstance);
     client = new StampchainClient();
   });
@@ -36,78 +36,82 @@ describe('API Response Validation', () => {
       const realStampResponse = {
         stamp: 1,
         block_index: 779652,
-        cpid: "A360128538192758000",
-        creator: "1GotRejB6XsGgMsM79TvcypeanDJRJbMtg",
-        creator_name: "Mike in Space",
+        cpid: 'A360128538192758000',
+        creator: '1GotRejB6XsGgMsM79TvcypeanDJRJbMtg',
+        creator_name: 'Mike in Space',
         divisible: 0, // Schema expects number 0/1, not boolean
         keyburn: null,
         locked: 1, // Schema expects number 0/1, not boolean
-        stamp_url: "https://stampchain.io/stamps/eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c.png",
-        stamp_mimetype: "image/png",
+        stamp_url:
+          'https://stampchain.io/stamps/eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c.png',
+        stamp_mimetype: 'image/png',
         supply: 1,
-        block_time: "2023-03-07T01:19:09.000Z", // Required in v2.3
-        tx_hash: "eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c",
+        block_time: '2023-03-07T01:19:09.000Z', // Required in v2.3
+        tx_hash: 'eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c',
         tx_index: 1,
-        ident: "STAMP" as const,
-        stamp_hash: "GNGxz7X4LYQoG61sLdvE",
-        file_hash: "b60ab2708daec7685f3d412a5e05191a",
-        stamp_base64: "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",
+        ident: 'STAMP' as const,
+        stamp_hash: 'GNGxz7X4LYQoG61sLdvE',
+        file_hash: 'b60ab2708daec7685f3d412a5e05191a',
+        stamp_base64:
+          'iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
         floorPrice: null,
         floorPriceUSD: null,
-        marketCapUSD: null
+        marketCapUSD: null,
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           last_block: 904672,
-          data: { stamp: realStampResponse } 
+          data: { stamp: realStampResponse },
         })
       );
 
       const result = await client.getStamp(1);
-      
+
       // Validate against our schema
       expect(() => StampSchema.parse(result)).not.toThrow();
       expect(result.stamp).toBe(1);
-      expect(result.creator).toBe("1GotRejB6XsGgMsM79TvcypeanDJRJbMtg");
-      expect(result.tx_hash).toBe("eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c");
-      expect(result.ident).toBe("STAMP");
+      expect(result.creator).toBe('1GotRejB6XsGgMsM79TvcypeanDJRJbMtg');
+      expect(result.tx_hash).toBe(
+        'eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c'
+      );
+      expect(result.ident).toBe('STAMP');
     });
 
     it('should handle stamps with missing optional fields', async () => {
       const minimalStamp = {
         stamp: 12345,
         block_index: 844755,
-        cpid: "A360128538192758000",
-        creator: "bc1qtest123456789012345678901234567890",
+        cpid: 'A360128538192758000',
+        creator: 'bc1qtest123456789012345678901234567890',
         creator_name: null,
         divisible: 0,
         keyburn: null,
         locked: 0,
-        stamp_url: "https://example.com/stamp.png",
-        stamp_mimetype: "image/png",
+        stamp_url: 'https://example.com/stamp.png',
+        stamp_mimetype: 'image/png',
         supply: 1,
-        block_time: "2024-01-01T00:00:00.000Z", // Required in v2.3
-        tx_hash: "eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c",
+        block_time: '2024-01-01T00:00:00.000Z', // Required in v2.3
+        tx_hash: 'eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c',
         tx_index: 1,
-        ident: "STAMP" as const,
-        stamp_hash: "testHash",
-        file_hash: "testFileHash",
-        stamp_base64: "testBase64",
+        ident: 'STAMP' as const,
+        stamp_hash: 'testHash',
+        file_hash: 'testFileHash',
+        stamp_base64: 'testBase64',
         floorPrice: null,
         floorPriceUSD: null,
-        marketCapUSD: null
+        marketCapUSD: null,
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           last_block: 904672,
-          data: { stamp: minimalStamp } 
+          data: { stamp: minimalStamp },
         })
       );
 
       const result = await client.getStamp(12345);
-      
+
       expect(() => StampSchema.parse(result)).not.toThrow();
       expect(result.stamp).toBe(12345);
       expect(result.creator_name).toBeNull();
@@ -120,65 +124,65 @@ describe('API Response Validation', () => {
       // Based on actual API response from https://stampchain.io/api/v2/collections
       // Updated to match our CollectionSchema exactly
       const realCollectionResponse = {
-        collection_id: "1A5976D0A56DA9AD3C22BFC7AA61641C",
-        collection_name: "warrior-stamps",
-        collection_description: "A collection of warrior stamps", // Schema requires string, not null
+        collection_id: '1A5976D0A56DA9AD3C22BFC7AA61641C',
+        collection_name: 'warrior-stamps',
+        collection_description: 'A collection of warrior stamps', // Schema requires string, not null
         creators: [],
         stamp_count: 10,
         total_editions: 210, // Schema expects number, not string
-        stamps: [17695, 17696, 17697, 17698, 17699, 17762, 17763, 17764, 17765, 17766]
+        stamps: [17695, 17696, 17697, 17698, 17699, 17762, 17763, 17764, 17765, 17766],
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           page: 1,
           limit: 500,
           totalPages: 1,
           total: 66,
           last_block: 904672,
-          data: [realCollectionResponse] 
+          data: [realCollectionResponse],
         })
       );
 
       const result = await client.searchCollections();
-      
+
       expect(result).toHaveLength(1);
       const collection = result[0];
       expect(() => CollectionSchema.parse(collection)).not.toThrow();
-      expect(collection.collection_id).toBe("1A5976D0A56DA9AD3C22BFC7AA61641C");
-      expect(collection.collection_name).toBe("warrior-stamps");
+      expect(collection.collection_id).toBe('1A5976D0A56DA9AD3C22BFC7AA61641C');
+      expect(collection.collection_name).toBe('warrior-stamps');
       expect(collection.stamp_count).toBe(10);
       expect(collection.stamps).toHaveLength(10);
     });
 
     it('should handle collections with creators and descriptions', async () => {
       const collectionWithDetails = {
-        collection_id: "802393BE99632442E3EFD8A4063A2B15",
-        collection_name: "Valtius",
-        collection_description: "A collection with description",
-        creators: ["bc1qlx4stcv2tddfmmjcgl9k2l9976hjs2f302q5l0"],
+        collection_id: '802393BE99632442E3EFD8A4063A2B15',
+        collection_name: 'Valtius',
+        collection_description: 'A collection with description',
+        creators: ['bc1qlx4stcv2tddfmmjcgl9k2l9976hjs2f302q5l0'],
         stamp_count: 3,
         total_editions: 7,
-        stamps: [448689, 449574, 450357]
+        stamps: [448689, 449574, 450357],
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           page: 1,
           limit: 500,
           totalPages: 1,
           total: 1,
           last_block: 904672,
-          data: [collectionWithDetails] 
+          data: [collectionWithDetails],
         })
       );
 
       const result = await client.searchCollections();
       const collection = result[0];
-      
+
       expect(() => CollectionSchema.parse(collection)).not.toThrow();
       expect(collection.creators).toHaveLength(1);
-      expect(collection.collection_description).toBe("A collection with description");
+      expect(collection.collection_description).toBe('A collection with description');
     });
   });
 
@@ -199,22 +203,22 @@ describe('API Response Validation', () => {
         destination: 'bc1qtest123456789012345678901234567890',
         block_time: '2024-01-01T00:00:00Z',
         creator_name: null,
-        destination_name: null
+        destination_name: null,
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           page: 1,
           limit: 500,
           totalPages: 1,
           total: 1,
           last_block: 904672,
-          data: [validToken] 
+          data: [validToken],
         })
       );
 
       const result = await client.searchTokens();
-      
+
       expect(result).toHaveLength(1);
       const token = result[0];
       expect(() => TokenSchema.parse(token)).not.toThrow();
@@ -229,11 +233,11 @@ describe('API Response Validation', () => {
         response: {
           status: 400,
           data: {
-            error: "Invalid stamp ID",
-            status: "error",
-            code: "BAD_REQUEST"
-          }
-        }
+            error: 'Invalid stamp ID',
+            status: 'error',
+            code: 'BAD_REQUEST',
+          },
+        },
       });
 
       await expect(client.getStamp(999999)).rejects.toThrow();
@@ -243,57 +247,59 @@ describe('API Response Validation', () => {
       const validStamp = {
         stamp: 12345,
         block_index: 844755,
-        cpid: "A360128538192758000",
-        creator: "bc1qtest123456789012345678901234567890",
+        cpid: 'A360128538192758000',
+        creator: 'bc1qtest123456789012345678901234567890',
         creator_name: null,
         divisible: 0,
         keyburn: null,
         locked: 1,
-        stamp_url: "https://example.com/stamp.png",
-        stamp_mimetype: "image/png",
+        stamp_url: 'https://example.com/stamp.png',
+        stamp_mimetype: 'image/png',
         supply: 1,
-        block_time: "2024-01-01T00:00:00.000Z", // Required in v2.3
-        tx_hash: "eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c",
+        block_time: '2024-01-01T00:00:00.000Z', // Required in v2.3
+        tx_hash: 'eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c',
         tx_index: 1,
-        ident: "STAMP" as const,
-        stamp_hash: "testHash",
-        file_hash: "testFileHash", 
-        stamp_base64: "testBase64",
+        ident: 'STAMP' as const,
+        stamp_hash: 'testHash',
+        file_hash: 'testFileHash',
+        stamp_base64: 'testBase64',
         floorPrice: null,
         floorPriceUSD: null,
-        marketCapUSD: null
+        marketCapUSD: null,
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           last_block: 904672,
-          data: { stamp: validStamp } 
+          data: { stamp: validStamp },
         })
       );
 
       const result = await client.getStamp(12345);
-      
+
       // Validate the stamp has required fields
       expect(result.stamp).toBe(12345);
-      expect(result.tx_hash).toBe("eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c");
-      expect(result.creator).toBe("bc1qtest123456789012345678901234567890");
-      expect(result.ident).toBe("STAMP");
+      expect(result.tx_hash).toBe(
+        'eb3da8146e626b5783f4359fb1510729f4aad923dfac45b6f1f3a2063907147c'
+      );
+      expect(result.creator).toBe('bc1qtest123456789012345678901234567890');
+      expect(result.ident).toBe('STAMP');
     });
   });
 
   describe('Error Response Validation', () => {
     it('should handle API error responses properly', async () => {
       const errorResponse = {
-        error: "API Endpoint not found: /api/stamps/999999",
-        status: "error",
-        code: "NOT_FOUND"
+        error: 'API Endpoint not found: /api/stamps/999999',
+        status: 'error',
+        code: 'NOT_FOUND',
       };
 
       mockAxiosInstance.get.mockRejectedValueOnce({
         response: {
           status: 404,
-          data: errorResponse
-        }
+          data: errorResponse,
+        },
       });
 
       await expect(client.getStamp(999999)).rejects.toThrow();
@@ -309,18 +315,18 @@ describe('API Response Validation', () => {
   describe('Response Structure Validation', () => {
     it('should validate client returns arrays for search methods', async () => {
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           page: 1,
           limit: 500,
           totalPages: 1,
           total: 0,
           last_block: 904672,
-          data: []
+          data: [],
         })
       );
 
       const result = await client.searchCollections();
-      
+
       expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(0); // Empty array for this test
     });
@@ -340,23 +346,23 @@ describe('API Response Validation', () => {
         destination: 'bc1qtest123456789012345678901234567890',
         block_time: '2024-01-15T10:30:00.000Z', // ISO 8601 format required by schema
         creator_name: null,
-        destination_name: null
+        destination_name: null,
       };
 
       mockAxiosInstance.get.mockResolvedValueOnce(
-        createMockAxiosResponse({ 
+        createMockAxiosResponse({
           page: 1,
           limit: 500,
           totalPages: 1,
           total: 1,
           last_block: 904672,
-          data: [tokenWithDateTime] 
+          data: [tokenWithDateTime],
         })
       );
 
       const result = await client.searchTokens();
       const token = result[0];
-      
+
       // Validate ISO datetime format
       expect(() => TokenSchema.parse(token)).not.toThrow();
       expect(new Date(token.block_time)).toBeInstanceOf(Date);
@@ -364,4 +370,4 @@ describe('API Response Validation', () => {
       expect(token.block_time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });
-}); 
+});

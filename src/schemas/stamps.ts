@@ -124,7 +124,8 @@ export const StampListResponseSchema = z.object({
 /**
  * Schema for transaction hashes
  */
-export const TxHashSchema = z.string()
+export const TxHashSchema = z
+  .string()
   .length(64, 'Transaction hash must be 64 characters')
   .regex(/^[a-f0-9]{64}$/i, 'Invalid transaction hash format');
 
@@ -132,29 +133,57 @@ export const TxHashSchema = z.string()
  * Schema for stamp query parameters with enhanced validation
  */
 export const StampQueryParamsSchema = z.object({
-  query: z.string().min(1, 'Search query cannot be empty').max(100, 'Search query too long').optional(),
+  query: z
+    .string()
+    .min(1, 'Search query cannot be empty')
+    .max(100, 'Search query too long')
+    .optional(),
   creator: BitcoinAddressSchema.optional(),
-  collection_id: z.string().min(1, 'Collection ID cannot be empty').max(50, 'Collection ID too long').optional(),
-  cpid: z.string().length(40, 'CPID must be 40 characters').regex(/^[A-Z0-9]{40}$/, 'Invalid CPID format').optional(),
+  collection_id: z
+    .string()
+    .min(1, 'Collection ID cannot be empty')
+    .max(50, 'Collection ID too long')
+    .optional(),
+  cpid: z
+    .string()
+    .length(40, 'CPID must be 40 characters')
+    .regex(/^[A-Z0-9]{40}$/, 'Invalid CPID format')
+    .optional(),
   is_btc_stamp: z.boolean().optional(),
   is_cursed: z.boolean().optional(),
   sort_order: z.enum(['ASC', 'DESC']).optional(),
   page: z.number().int().positive().max(10000, 'Page number too large').optional(),
-  page_size: z.number().int().positive().min(1, 'Page size must be at least 1').max(100, 'Page size cannot exceed 100').optional(),
-  limit: z.number().int().positive().min(1, 'Limit must be at least 1').max(100, 'Limit cannot exceed 100').optional(),
+  page_size: z
+    .number()
+    .int()
+    .positive()
+    .min(1, 'Page size must be at least 1')
+    .max(100, 'Page size cannot exceed 100')
+    .optional(),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .min(1, 'Limit must be at least 1')
+    .max(100, 'Limit cannot exceed 100')
+    .optional(),
 });
 
 /**
  * Schema for MCP tool parameters when getting a single stamp
  */
 export const GetStampParamsSchema = z.object({
-  stamp_id: z.union([z.number(), z.string()])
-    .refine((val) => {
-      const num = typeof val === 'string' ? parseInt(val, 10) : val;
-      return !isNaN(num) && num > 0;
-    }, {
-      message: 'stamp_id must be a positive number'
-    })
+  stamp_id: z
+    .union([z.number(), z.string()])
+    .refine(
+      (val) => {
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        return !isNaN(num) && num > 0;
+      },
+      {
+        message: 'stamp_id must be a positive number',
+      }
+    )
     .transform((val) => {
       const num = typeof val === 'string' ? parseInt(val, 10) : val;
       return num;
@@ -226,13 +255,17 @@ export type GetMarketDataParams = z.infer<typeof GetMarketDataParamsSchema>;
 
 // v2.3: Get stamp market data parameters
 export const GetStampMarketDataParamsSchema = z.object({
-  stamp_id: z.union([z.number(), z.string()])
-    .refine((val) => {
-      const num = typeof val === 'string' ? parseInt(val, 10) : val;
-      return !isNaN(num) && num > 0;
-    }, {
-      message: 'stamp_id must be a positive number'
-    })
+  stamp_id: z
+    .union([z.number(), z.string()])
+    .refine(
+      (val) => {
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        return !isNaN(num) && num > 0;
+      },
+      {
+        message: 'stamp_id must be a positive number',
+      }
+    )
     .transform((val) => {
       const num = typeof val === 'string' ? parseInt(val, 10) : val;
       return num;

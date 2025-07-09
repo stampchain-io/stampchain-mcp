@@ -40,12 +40,12 @@ export interface ServerStats {
 }
 
 export interface ServerEvents {
-  'start': () => void;
-  'stop': () => void;
-  'error': (error: Error) => void;
-  'connection': (id: string) => void;
-  'disconnection': (id: string) => void;
-  'request': (method: string) => void;
+  start: () => void;
+  stop: () => void;
+  error: (error: Error) => void;
+  connection: (id: string) => void;
+  disconnection: (id: string) => void;
+  request: (method: string) => void;
   'tool-execution': (toolName: string, success: boolean) => void;
 }
 
@@ -76,23 +76,25 @@ export class StampchainServer extends EventEmitter {
 
   constructor(options: StampchainServerOptions) {
     super();
-    
+
     this.config = options.config;
-    this.logger = options.logger || createLogger('server', {
-      level: options.config.logging.level
-    });
-    
+    this.logger =
+      options.logger ||
+      createLogger('server', {
+        level: options.config.logging.level,
+      });
+
     // Initialize or use provided components
     this.toolRegistry = options.toolRegistry || new ToolRegistry(this.config.registry);
     this.apiClient = options.apiClient || new StampchainClient(this.config.api);
-    
+
     // Create protocol manager
     this.protocolManager = new ProtocolManager({
       toolRegistry: this.toolRegistry,
       apiClient: this.apiClient,
       config: this.config,
     });
-    
+
     this.setupEventHandlers();
   }
 
@@ -108,7 +110,7 @@ export class StampchainServer extends EventEmitter {
     try {
       // Validate configuration
       this.validateConfiguration();
-      
+
       // Initialize MCP SDK server
       this.server = new Server(
         {
@@ -131,15 +133,14 @@ export class StampchainServer extends EventEmitter {
           },
         }
       );
-      
+
       // Setup protocol handlers using the protocol manager
       await this.protocolManager.setupHandlers(this.server);
-      
+
       this.logger.info('Server initialized successfully', {
         tools: this.toolRegistry.getStats().totalTools,
         categories: this.toolRegistry.getCategories(),
       });
-      
     } catch (error) {
       this.logger.error('Failed to initialize server', {
         error: error instanceof Error ? error.message : String(error),
@@ -161,23 +162,22 @@ export class StampchainServer extends EventEmitter {
     }
 
     this.logger.info('Starting server...');
-    
+
     try {
       this.transport = transport;
-      
+
       // Connect protocol manager to transport
       await this.protocolManager.connect(transport);
-      
+
       this.isRunning = true;
       this.startTime = new Date();
-      
+
       this.logger.info('Server started successfully', {
         transport: 'stdio',
         pid: process.pid,
       });
-      
+
       this.emit('start');
-      
     } catch (error) {
       this.isRunning = false;
       this.logger.error('Failed to start server', {
@@ -198,25 +198,24 @@ export class StampchainServer extends EventEmitter {
     }
 
     this.logger.info('Stopping server...');
-    
+
     try {
       // Shutdown protocol manager
       await this.protocolManager.shutdown();
-      
+
       // Close MCP server
       if (this.server) {
         await this.server.close();
       }
-      
+
       this.isRunning = false;
-      
+
       this.logger.info('Server stopped successfully', {
         uptime: this.getUptime(),
         totalRequests: this.stats.requests.total,
       });
-      
+
       this.emit('stop');
-      
     } catch (error) {
       this.logger.error('Error during server shutdown', {
         error: error instanceof Error ? error.message : String(error),
@@ -231,11 +230,11 @@ export class StampchainServer extends EventEmitter {
    */
   async restart(): Promise<void> {
     this.logger.info('Restarting server...');
-    
+
     if (this.isRunning && this.transport) {
       await this.stop();
     }
-    
+
     if (this.transport) {
       await this.start(this.transport);
     } else {
@@ -248,7 +247,7 @@ export class StampchainServer extends EventEmitter {
    */
   getStats(): ServerStats {
     const protocolStats = this.protocolManager.getStats();
-    
+
     return {
       uptime: this.getUptime(),
       startTime: this.startTime || new Date(),
@@ -315,15 +314,15 @@ export class StampchainServer extends EventEmitter {
     if (!this.config.name) {
       throw new Error('Server name is required');
     }
-    
+
     if (!this.config.version) {
       throw new Error('Server version is required');
     }
-    
+
     if (!this.config.api.baseUrl) {
       throw new Error('API base URL is required');
     }
-    
+
     // Validate tool registry has tools
     const stats = this.toolRegistry.getStats();
     if (stats.totalTools === 0) {
@@ -339,24 +338,24 @@ export class StampchainServer extends EventEmitter {
     this.protocolManager.on('connection', (connectionId) => {
       this.emit('connection', connectionId);
     });
-    
+
     this.protocolManager.on('disconnection', (connectionId) => {
       this.emit('disconnection', connectionId);
     });
-    
+
     this.protocolManager.on('request', (method) => {
       this.stats.requests.total++;
       this.emit('request', method);
     });
-    
+
     this.protocolManager.on('request-success', () => {
       this.stats.requests.successful++;
     });
-    
+
     this.protocolManager.on('request-error', () => {
       this.stats.requests.failed++;
     });
-    
+
     this.protocolManager.on('tool-execution', (toolName, success) => {
       if (success) {
         this.stats.tools.executions++;
@@ -368,17 +367,11 @@ export class StampchainServer extends EventEmitter {
   /**
    * Type-safe event emitter methods
    */
-  on<K extends keyof ServerEvents>(
-    event: K,
-    listener: ServerEvents[K]
-  ): this {
+  on<K extends keyof ServerEvents>(event: K, listener: ServerEvents[K]): this {
     return super.on(event, listener);
   }
 
-  emit<K extends keyof ServerEvents>(
-    event: K,
-    ...args: Parameters<ServerEvents[K]>
-  ): boolean {
+  emit<K extends keyof ServerEvents>(event: K, ...args: Parameters<ServerEvents[K]>): boolean {
     return super.emit(event, ...args);
   }
 }

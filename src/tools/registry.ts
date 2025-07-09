@@ -44,7 +44,7 @@ export class ToolRegistry {
       maxTools: 1000,
       ...options,
     };
-    
+
     logger.info('Tool registry initialized', { options: this.options });
   }
 
@@ -60,24 +60,26 @@ export class ToolRegistry {
     options?: { version?: string; category?: string; force?: boolean }
   ): string {
     const { version = '1.0.0', category, force = false } = options || {};
-    
+
     // Validate tool implementation
     if (this.options.validateOnRegister && !isTool(tool)) {
       throw new InvalidParametersError('Invalid tool implementation', [
-        `Tool: ${(tool as any)?.name || 'unknown'}`
+        `Tool: ${(tool as any)?.name || 'unknown'}`,
       ]);
     }
 
     // Check for duplicate names
     if (!this.options.allowDuplicateNames && this.tools.has(tool.name) && !force) {
       throw new InvalidParametersError(`Tool with name '${tool.name}' already registered`, [
-        `Tool: ${tool.name}`
+        `Tool: ${tool.name}`,
       ]);
     }
 
     // Check max tools limit
     if (this.tools.size >= this.options.maxTools && !this.tools.has(tool.name)) {
-      throw new InvalidParametersError(`Maximum number of tools (${this.options.maxTools}) reached`);
+      throw new InvalidParametersError(
+        `Maximum number of tools (${this.options.maxTools}) reached`
+      );
     }
 
     // Register the tool
@@ -96,11 +98,11 @@ export class ToolRegistry {
       this.toolsByCategory.get(category)!.add(tool.name);
     }
 
-    logger.info('Tool registered', { 
-      name: tool.name, 
-      version, 
+    logger.info('Tool registered', {
+      name: tool.name,
+      version,
       category,
-      totalTools: this.tools.size 
+      totalTools: this.tools.size,
     });
 
     return tool.name;
@@ -117,19 +119,19 @@ export class ToolRegistry {
     options?: { version?: string; category?: string; force?: boolean }
   ): string[] {
     const registered: string[] = [];
-    
+
     for (const tool of tools) {
       try {
         const name = this.register(tool, options);
         registered.push(name);
       } catch (error) {
-        logger.error('Failed to register tool', { 
+        logger.error('Failed to register tool', {
           toolName: tool.name,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
-    
+
     return registered;
   }
 
@@ -140,7 +142,7 @@ export class ToolRegistry {
    */
   public unregister(name: string): boolean {
     const removed = this.tools.delete(name);
-    
+
     if (removed) {
       // Remove from categories
       for (const [category, toolNames] of this.toolsByCategory) {
@@ -148,10 +150,10 @@ export class ToolRegistry {
           this.toolsByCategory.delete(category);
         }
       }
-      
+
       logger.info('Tool unregistered', { name });
     }
-    
+
     return removed;
   }
 
@@ -172,15 +174,15 @@ export class ToolRegistry {
    */
   public get(name: string): ITool {
     const registered = this.tools.get(name);
-    
+
     if (!registered) {
       throw new ToolNotFoundError(name);
     }
-    
+
     if (!registered.enabled) {
       throw new InvalidParametersError(`Tool '${name}' is disabled`);
     }
-    
+
     return registered.tool;
   }
 
@@ -201,14 +203,14 @@ export class ToolRegistry {
    */
   public setEnabled(name: string, enabled: boolean): boolean {
     const registered = this.tools.get(name);
-    
+
     if (!registered) {
       return false;
     }
-    
+
     registered.enabled = enabled;
     logger.info('Tool state changed', { name, enabled });
-    
+
     return true;
   }
 
@@ -245,42 +247,42 @@ export class ToolRegistry {
    * @param options Filter options
    * @returns Array of tool information
    */
-  public list(options?: { 
-    enabled?: boolean; 
-    category?: string; 
-    includeMetadata?: boolean 
+  public list(options?: {
+    enabled?: boolean;
+    category?: string;
+    includeMetadata?: boolean;
   }): Array<{ name: string; description: string; tool?: ITool; metadata?: RegisteredTool }> {
     const { enabled, category, includeMetadata = false } = options || {};
-    
+
     let toolNames = Array.from(this.tools.keys());
-    
+
     // Filter by category
     if (category && this.toolsByCategory.has(category)) {
       const categoryTools = this.toolsByCategory.get(category)!;
-      toolNames = toolNames.filter(name => categoryTools.has(name));
+      toolNames = toolNames.filter((name) => categoryTools.has(name));
     }
-    
+
     // Filter by enabled state
     if (enabled !== undefined) {
-      toolNames = toolNames.filter(name => {
+      toolNames = toolNames.filter((name) => {
         const registered = this.tools.get(name);
         return registered && registered.enabled === enabled;
       });
     }
-    
+
     // Map to result format
-    return toolNames.map(name => {
+    return toolNames.map((name) => {
       const registered = this.tools.get(name)!;
       const result: any = {
         name: registered.tool.name,
         description: registered.tool.description,
       };
-      
+
       if (includeMetadata) {
         result.tool = registered.tool;
         result.metadata = registered;
       }
-      
+
       return result;
     });
   }
@@ -341,7 +343,7 @@ export class ToolRegistry {
   } {
     let enabledCount = 0;
     let disabledCount = 0;
-    
+
     for (const registered of this.tools.values()) {
       if (registered.enabled) {
         enabledCount++;
@@ -349,12 +351,12 @@ export class ToolRegistry {
         disabledCount++;
       }
     }
-    
+
     const toolsByCategory: Record<string, number> = {};
     for (const [category, tools] of this.toolsByCategory) {
       toolsByCategory[category] = tools.size;
     }
-    
+
     return {
       totalTools: this.tools.size,
       enabledTools: enabledCount,
@@ -379,7 +381,7 @@ export class ToolRegistry {
     options: ToolRegistryOptions;
   } {
     const tools: any[] = [];
-    
+
     for (const [name, registered] of this.tools) {
       const toolExport: any = {
         name,
@@ -387,7 +389,7 @@ export class ToolRegistry {
         enabled: registered.enabled,
         registeredAt: registered.registeredAt.toISOString(),
       };
-      
+
       // Find category
       for (const [category, toolNames] of this.toolsByCategory) {
         if (toolNames.has(name)) {
@@ -395,10 +397,10 @@ export class ToolRegistry {
           break;
         }
       }
-      
+
       tools.push(toolExport);
     }
-    
+
     return {
       tools,
       options: this.options,
@@ -411,7 +413,7 @@ export class ToolRegistry {
    */
   public validate(): Array<{ name: string; valid: boolean; error?: string }> {
     const results: Array<{ name: string; valid: boolean; error?: string }> = [];
-    
+
     for (const [name, registered] of this.tools) {
       try {
         if (!isTool(registered.tool)) {
@@ -420,14 +422,14 @@ export class ToolRegistry {
           results.push({ name, valid: true });
         }
       } catch (error) {
-        results.push({ 
-          name, 
-          valid: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        results.push({
+          name,
+          valid: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
-    
+
     return results;
   }
 }

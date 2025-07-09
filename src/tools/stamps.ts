@@ -10,8 +10,8 @@ import { textResponse, multiResponse, BaseTool } from '../interfaces/tool.js';
 import { ToolExecutionError, ValidationError } from '../utils/errors.js';
 import { StampchainClient } from '../api/stampchain-client.js';
 import type { Stamp, RecentSalesResponse, StampMarketData } from '../api/types.js';
-import { 
-  GetStampParamsSchema, 
+import {
+  GetStampParamsSchema,
   SearchStampsParamsSchema,
   GetRecentStampsParamsSchema,
   GetRecentSalesParamsSchema,
@@ -22,13 +22,9 @@ import {
   type GetRecentStampsParams,
   type GetRecentSalesParams,
   type GetMarketDataParams,
-  type GetStampMarketDataParams
+  type GetStampMarketDataParams,
 } from '../schemas/stamps.js';
-import { 
-  formatStamp, 
-  formatStampList,
-  stampToJSON 
-} from '../utils/formatters.js';
+import { formatStamp, formatStampList, stampToJSON } from '../utils/formatters.js';
 import { parseStampId } from '../utils/validators.js';
 
 /**
@@ -36,9 +32,10 @@ import { parseStampId } from '../utils/validators.js';
  */
 export class GetStampTool extends BaseTool<z.input<typeof GetStampParamsSchema>, GetStampParams> {
   public readonly name = 'get_stamp';
-  
-  public readonly description = 'Retrieve detailed information about a specific Bitcoin stamp by its ID';
-  
+
+  public readonly description =
+    'Retrieve detailed information about a specific Bitcoin stamp by its ID';
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -54,81 +51,65 @@ export class GetStampTool extends BaseTool<z.input<typeof GetStampParamsSchema>,
     },
     required: ['stamp_id'],
   };
-  
+
   public readonly schema = GetStampParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'query'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
+
   public async execute(params: GetStampParams, context?: ToolContext): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_stamp tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
       const stampId = parseStampId(validatedParams.stamp_id);
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       // Fetch stamp data
       const stamp: Stamp = await client.getStamp(stampId);
-      
+
       if (!stamp) {
-        throw new ToolExecutionError(
-          `Stamp with ID ${stampId} not found`,
-          this.name,
-          { stampId }
-        );
+        throw new ToolExecutionError(`Stamp with ID ${stampId} not found`, this.name, { stampId });
       }
-      
+
       // Format the response
-      const formattedStamp = formatStamp(stamp, { 
-        includeBase64: validatedParams.include_base64 
+      const formattedStamp = formatStamp(stamp, {
+        includeBase64: validatedParams.include_base64,
       });
-      
+
       // Return both formatted text and JSON data
-      return multiResponse(
-        { type: 'text', text: formattedStamp },
-        stampToJSON(stamp)
-      );
-      
+      return multiResponse({ type: 'text', text: formattedStamp }, stampToJSON(stamp));
     } catch (error) {
       context?.logger?.error('Error executing get_stamp tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve stamp information',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve stamp information', this.name, error);
     }
   }
 }
@@ -136,11 +117,15 @@ export class GetStampTool extends BaseTool<z.input<typeof GetStampParamsSchema>,
 /**
  * Tool for searching stamps with various filtering criteria
  */
-export class SearchStampsTool extends BaseTool<z.input<typeof SearchStampsParamsSchema>, SearchStampsParams> {
+export class SearchStampsTool extends BaseTool<
+  z.input<typeof SearchStampsParamsSchema>,
+  SearchStampsParams
+> {
   public readonly name = 'search_stamps';
-  
-  public readonly description = 'Search for Bitcoin stamps with various filtering criteria including creator, collection, and stamp type';
-  
+
+  public readonly description =
+    'Search for Bitcoin stamps with various filtering criteria including creator, collection, and stamp type';
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -190,30 +175,30 @@ export class SearchStampsTool extends BaseTool<z.input<typeof SearchStampsParams
     },
     required: [],
   };
-  
+
   public readonly schema = SearchStampsParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'search', 'query'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
+
   public async execute(params: SearchStampsParams, context?: ToolContext): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing search_stamps tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Build query parameters
       const queryParams = {
         query: validatedParams.query,
@@ -226,32 +211,32 @@ export class SearchStampsTool extends BaseTool<z.input<typeof SearchStampsParams
         page: validatedParams.page,
         page_size: validatedParams.page_size,
       };
-      
+
       // Remove undefined values
-      Object.keys(queryParams).forEach(key => {
+      Object.keys(queryParams).forEach((key) => {
         if (queryParams[key as keyof typeof queryParams] === undefined) {
           delete queryParams[key as keyof typeof queryParams];
         }
       });
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       // Search stamps
       const stamps: Stamp[] = await client.searchStamps(queryParams);
-      
+
       if (!stamps || stamps.length === 0) {
         return textResponse('No stamps found matching the search criteria');
       }
-      
+
       // Since the API returns an array, we need to handle pagination info differently
       const total = stamps.length;
       const page = validatedParams.page || 1;
       const limit = validatedParams.page_size || 20;
-      
+
       // Format the response
       const formattedList = formatStampList(stamps, total, page, limit);
-      
+
       // Include metadata about the search
       const metadata = {
         total_results: total,
@@ -260,37 +245,28 @@ export class SearchStampsTool extends BaseTool<z.input<typeof SearchStampsParams
         total_pages: Math.ceil(total / limit),
         query_params: queryParams,
       };
-      
+
       return multiResponse(
         { type: 'text', text: formattedList },
         { type: 'text', text: `\nSearch Metadata:\n${JSON.stringify(metadata, null, 2)}` }
       );
-      
     } catch (error) {
       context?.logger?.error('Error executing search_stamps tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to search stamps',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to search stamps', this.name, error);
     }
   }
 }
@@ -298,11 +274,14 @@ export class SearchStampsTool extends BaseTool<z.input<typeof SearchStampsParams
 /**
  * Tool for retrieving recently created stamps
  */
-export class GetRecentStampsTool extends BaseTool<z.input<typeof GetRecentStampsParamsSchema>, GetRecentStampsParams> {
+export class GetRecentStampsTool extends BaseTool<
+  z.input<typeof GetRecentStampsParamsSchema>,
+  GetRecentStampsParams
+> {
   public readonly name = 'get_recent_stamps';
-  
+
   public readonly description = 'Retrieve the most recently created Bitcoin stamps';
-  
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -316,50 +295,53 @@ export class GetRecentStampsTool extends BaseTool<z.input<typeof GetRecentStamps
     },
     required: [],
   };
-  
+
   public readonly schema = GetRecentStampsParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'recent'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
-  public async execute(params: GetRecentStampsParams, context?: ToolContext): Promise<ToolResponse> {
+
+  public async execute(
+    params: GetRecentStampsParams,
+    context?: ToolContext
+  ): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_recent_stamps tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Get recent stamps by searching with sort order DESC
       const queryParams = {
         sort_order: 'DESC' as const,
         page: 1,
         page_size: validatedParams.limit,
       };
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       const stamps: Stamp[] = await client.searchStamps(queryParams);
-      
+
       if (!stamps || stamps.length === 0) {
         return textResponse('No recent stamps found');
       }
-      
+
       // Create a summary of recent stamps
       const lines = [`${stamps.length} Most Recent Stamps:`];
       lines.push('---');
-      
+
       stamps.forEach((stamp, index) => {
         lines.push(`${index + 1}. Stamp #${stamp.stamp}`);
         lines.push(`   Block: ${stamp.block_index}`);
@@ -371,34 +353,25 @@ export class GetRecentStampsTool extends BaseTool<z.input<typeof GetRecentStamps
         }
         lines.push('');
       });
-      
+
       return textResponse(lines.join('\n'));
-      
     } catch (error) {
       context?.logger?.error('Error executing get_recent_stamps tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve recent stamps',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve recent stamps', this.name, error);
     }
   }
 }
@@ -406,11 +379,15 @@ export class GetRecentStampsTool extends BaseTool<z.input<typeof GetRecentStamps
 /**
  * Tool for retrieving recent sales data (v2.3 feature)
  */
-export class GetRecentSalesTool extends BaseTool<z.input<typeof GetRecentSalesParamsSchema>, GetRecentSalesParams> {
+export class GetRecentSalesTool extends BaseTool<
+  z.input<typeof GetRecentSalesParamsSchema>,
+  GetRecentSalesParams
+> {
   public readonly name = 'get_recent_sales';
-  
-  public readonly description = 'Retrieve recent stamp sales with enhanced transaction details (v2.3 feature)';
-  
+
+  public readonly description =
+    'Retrieve recent stamp sales with enhanced transaction details (v2.3 feature)';
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -452,50 +429,54 @@ export class GetRecentSalesTool extends BaseTool<z.input<typeof GetRecentSalesPa
     },
     required: [],
   };
-  
+
   public readonly schema = GetRecentSalesParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'sales', 'market', 'v2.3'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
+
   public async execute(params: GetRecentSalesParams, context?: ToolContext): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_recent_sales tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       // Check if v2.3 features are available
       const features = client.getFeatureAvailability();
       if (!features.recentSales) {
-        return textResponse('Recent sales data is not available in the current API version. Please upgrade to v2.3 or later.');
+        return textResponse(
+          'Recent sales data is not available in the current API version. Please upgrade to v2.3 or later.'
+        );
       }
-      
+
       // Get recent sales data
       const salesData: RecentSalesResponse = await client.getRecentSales(validatedParams);
-      
+
       if (!salesData.data || salesData.data.length === 0) {
         return textResponse('No recent sales found for the specified criteria');
       }
-      
+
       // Format the response
-      const lines = [`Recent Sales (${salesData.data.length} results, ${validatedParams.dayRange} days):`];
+      const lines = [
+        `Recent Sales (${salesData.data.length} results, ${validatedParams.dayRange} days):`,
+      ];
       lines.push('---');
-      
+
       salesData.data.forEach((sale, index) => {
         lines.push(`${index + 1}. Stamp #${sale.stamp_id}`);
         lines.push(`   Transaction: ${sale.tx_hash}`);
@@ -515,41 +496,32 @@ export class GetRecentSalesTool extends BaseTool<z.input<typeof GetRecentSalesPa
         }
         lines.push('');
       });
-      
+
       // Add metadata
       lines.push('Metadata:');
       lines.push(`- Day Range: ${salesData.metadata.dayRange} days`);
       lines.push(`- Last Updated: ${new Date(salesData.metadata.lastUpdated).toISOString()}`);
       lines.push(`- Total Results: ${salesData.metadata.total}`);
       lines.push(`- Last Block: ${salesData.last_block}`);
-      
+
       return textResponse(lines.join('\n'));
-      
     } catch (error) {
       context?.logger?.error('Error executing get_recent_sales tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve recent sales data',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve recent sales data', this.name, error);
     }
   }
 }
@@ -557,11 +529,15 @@ export class GetRecentSalesTool extends BaseTool<z.input<typeof GetRecentSalesPa
 /**
  * Tool for retrieving market data for stamps (v2.3 feature)
  */
-export class GetMarketDataTool extends BaseTool<z.input<typeof GetMarketDataParamsSchema>, GetMarketDataParams> {
+export class GetMarketDataTool extends BaseTool<
+  z.input<typeof GetMarketDataParamsSchema>,
+  GetMarketDataParams
+> {
   public readonly name = 'get_market_data';
-  
-  public readonly description = 'Retrieve market data for stamps with trading activity indicators (v2.3 feature)';
-  
+
+  public readonly description =
+    'Retrieve market data for stamps with trading activity indicators (v2.3 feature)';
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -605,50 +581,52 @@ export class GetMarketDataTool extends BaseTool<z.input<typeof GetMarketDataPara
     },
     required: [],
   };
-  
+
   public readonly schema = GetMarketDataParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'market', 'trading', 'v2.3'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
+
   public async execute(params: GetMarketDataParams, context?: ToolContext): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_market_data tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       // Check if v2.3 features are available
       const features = client.getFeatureAvailability();
       if (!features.marketData) {
-        return textResponse('Market data is not available in the current API version. Please upgrade to v2.3 or later.');
+        return textResponse(
+          'Market data is not available in the current API version. Please upgrade to v2.3 or later.'
+        );
       }
-      
+
       // Get market data
       const marketData = await client.getMarketData(validatedParams);
-      
+
       if (!marketData.data || marketData.data.length === 0) {
         return textResponse('No market data found for the specified criteria');
       }
-      
+
       // Format the response
       const lines = [`Market Data (${marketData.data.length} results):`];
       lines.push('---');
-      
+
       marketData.data.forEach((data: StampMarketData, index: number) => {
         lines.push(`${index + 1}. Market Data Entry`);
         lines.push(`   Floor Price: ${data.floorPriceBTC || 'N/A'} BTC`);
@@ -671,41 +649,32 @@ export class GetMarketDataTool extends BaseTool<z.input<typeof GetMarketDataPara
         }
         lines.push('');
       });
-      
+
       // Add metadata
       lines.push('Metadata:');
       lines.push(`- Total Results: ${marketData.total}`);
       lines.push(`- Page: ${marketData.page}`);
       lines.push(`- Page Size: ${marketData.limit}`);
       lines.push(`- Last Block: ${marketData.last_block}`);
-      
+
       return textResponse(lines.join('\n'));
-      
     } catch (error) {
       context?.logger?.error('Error executing get_market_data tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve market data',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve market data', this.name, error);
     }
   }
 }
@@ -713,11 +682,14 @@ export class GetMarketDataTool extends BaseTool<z.input<typeof GetMarketDataPara
 /**
  * Tool for retrieving market data for a specific stamp (v2.3 feature)
  */
-export class GetStampMarketDataTool extends BaseTool<z.input<typeof GetStampMarketDataParamsSchema>, GetStampMarketDataParams> {
+export class GetStampMarketDataTool extends BaseTool<
+  z.input<typeof GetStampMarketDataParamsSchema>,
+  GetStampMarketDataParams
+> {
   public readonly name = 'get_stamp_market_data';
-  
+
   public readonly description = 'Retrieve detailed market data for a specific stamp (v2.3 feature)';
-  
+
   public readonly inputSchema: MCPTool['inputSchema'] = {
     type: 'object',
     properties: {
@@ -728,55 +700,60 @@ export class GetStampMarketDataTool extends BaseTool<z.input<typeof GetStampMark
     },
     required: ['stamp_id'],
   };
-  
+
   public readonly schema = GetStampMarketDataParamsSchema;
-  
+
   public readonly metadata = {
     version: '1.0.0',
     tags: ['stamps', 'market', 'trading', 'v2.3'],
     requiresNetwork: true,
     apiDependencies: ['stampchain'],
   };
-  
+
   private apiClient: StampchainClient;
-  
+
   constructor(apiClient?: StampchainClient) {
     super();
     this.apiClient = apiClient || new StampchainClient();
   }
-  
-  public async execute(params: GetStampMarketDataParams, context?: ToolContext): Promise<ToolResponse> {
+
+  public async execute(
+    params: GetStampMarketDataParams,
+    context?: ToolContext
+  ): Promise<ToolResponse> {
     try {
       context?.logger?.info('Executing get_stamp_market_data tool', { params });
-      
+
       // Validate parameters
       const validatedParams = this.validateParams(params);
-      
+
       // Use API client from context if available, otherwise use instance client
       const client = context?.apiClient || this.apiClient;
-      
+
       // Check if v2.3 features are available
       const features = client.getFeatureAvailability();
       if (!features.marketData) {
-        return textResponse('Market data is not available in the current API version. Please upgrade to v2.3 or later.');
+        return textResponse(
+          'Market data is not available in the current API version. Please upgrade to v2.3 or later.'
+        );
       }
-      
+
       // Get stamp market data
       const marketData: StampMarketData = await client.getStampMarketData(validatedParams.stamp_id);
-      
+
       if (!marketData) {
         return textResponse(`No market data found for stamp ${validatedParams.stamp_id}`);
       }
-      
+
       // Format the response
       const lines = [`Market Data for Stamp #${validatedParams.stamp_id}:`];
       lines.push('---');
-      
+
       lines.push(`Floor Price: ${marketData.floorPriceBTC || 'N/A'} BTC`);
       if (marketData.floorPriceUSD) {
         lines.push(`Floor Price USD: $${marketData.floorPriceUSD.toFixed(2)}`);
       }
-            // Note: marketCapUSD not available in v2.3 marketData object
+      // Note: marketCapUSD not available in v2.3 marketData object
 
       lines.push(`Activity Level: ${marketData.activityLevel}`);
       if (marketData.lastActivityTime) {
@@ -792,7 +769,7 @@ export class GetStampMarketDataTool extends BaseTool<z.input<typeof GetStampMark
       if (marketData.volume30dBTC) {
         lines.push(`30d Volume: ${marketData.volume30dBTC} BTC`);
       }
-      
+
       if (marketData.lastSaleTxHash) {
         lines.push('');
         lines.push('Last Sale Details:');
@@ -810,34 +787,25 @@ export class GetStampMarketDataTool extends BaseTool<z.input<typeof GetStampMark
           lines.push(`- Block: ${marketData.lastSaleBlockIndex}`);
         }
       }
-      
+
       return textResponse(lines.join('\n'));
-      
     } catch (error) {
       context?.logger?.error('Error executing get_stamp_market_data tool', { error });
-      
+
       if (error instanceof ValidationError) {
         throw error;
       }
-      
+
       if (error instanceof ToolExecutionError) {
         throw error;
       }
-      
+
       // Pass through the original error message for API errors
       if (error instanceof Error) {
-        throw new ToolExecutionError(
-          error.message,
-          this.name,
-          error
-        );
+        throw new ToolExecutionError(error.message, this.name, error);
       }
-      
-      throw new ToolExecutionError(
-        'Failed to retrieve stamp market data',
-        this.name,
-        error
-      );
+
+      throw new ToolExecutionError('Failed to retrieve stamp market data', this.name, error);
     }
   }
 }

@@ -43,11 +43,13 @@ export class ConnectionHandler extends EventEmitter {
 
   constructor(options: ConnectionHandlerOptions) {
     super();
-    
+
     this.config = options.config;
-    this.logger = options.logger || createLogger('connection', {
-      level: options.config.logging.level
-    });
+    this.logger =
+      options.logger ||
+      createLogger('connection', {
+        level: options.config.logging.level,
+      });
     this.maxConnections = options.maxConnections || 100;
     this.sessionTimeout = options.sessionTimeout || 3600000; // 1 hour default
 
@@ -66,7 +68,7 @@ export class ConnectionHandler extends EventEmitter {
 
     // Generate unique connection ID
     const id = this.generateConnectionId();
-    
+
     // Create connection info
     const info: ConnectionInfo = {
       id,
@@ -78,10 +80,10 @@ export class ConnectionHandler extends EventEmitter {
 
     // Store connection
     this.connections.set(id, info);
-    
+
     this.logger.info('New connection registered', {
       id,
-      totalConnections: this.connections.size
+      totalConnections: this.connections.size,
     });
 
     // Emit connect event
@@ -95,19 +97,19 @@ export class ConnectionHandler extends EventEmitter {
    */
   unregisterConnection(id: string): void {
     const connection = this.connections.get(id);
-    
+
     if (!connection) {
       this.logger.warn('Attempted to unregister unknown connection', { id });
       return;
     }
 
     this.connections.delete(id);
-    
+
     this.logger.info('Connection unregistered', {
       id,
       duration: Date.now() - connection.connectedAt.getTime(),
       requests: connection.requestCount,
-      totalConnections: this.connections.size
+      totalConnections: this.connections.size,
     });
 
     // Emit disconnect event
@@ -119,7 +121,7 @@ export class ConnectionHandler extends EventEmitter {
    */
   updateActivity(id: string): void {
     const connection = this.connections.get(id);
-    
+
     if (!connection) {
       this.logger.warn('Activity update for unknown connection', { id });
       return;
@@ -156,14 +158,15 @@ export class ConnectionHandler extends EventEmitter {
     return {
       totalConnections: connections.length,
       activeConnections: connections.filter(
-        c => (now - c.lastActivity.getTime()) < 60000 // Active in last minute
+        (c) => now - c.lastActivity.getTime() < 60000 // Active in last minute
       ).length,
       totalRequests: connections.reduce((sum, c) => sum + c.requestCount, 0),
-      averageRequestsPerConnection: connections.length > 0
-        ? connections.reduce((sum, c) => sum + c.requestCount, 0) / connections.length
-        : 0,
-      oldestConnection: connections.reduce((oldest, c) => 
-        !oldest || c.connectedAt < oldest.connectedAt ? c : oldest, 
+      averageRequestsPerConnection:
+        connections.length > 0
+          ? connections.reduce((sum, c) => sum + c.requestCount, 0) / connections.length
+          : 0,
+      oldestConnection: connections.reduce(
+        (oldest, c) => (!oldest || c.connectedAt < oldest.connectedAt ? c : oldest),
         null as ConnectionInfo | null
       ),
     };
@@ -178,12 +181,12 @@ export class ConnectionHandler extends EventEmitter {
 
     for (const [id, connection] of this.connections) {
       const inactiveTime = now - connection.lastActivity.getTime();
-      
+
       if (inactiveTime > timeout) {
         this.logger.info('Cleaning up inactive connection', {
           id,
           inactiveTime,
-          timeout
+          timeout,
         });
 
         this.unregisterConnection(id);
@@ -242,10 +245,7 @@ export class ConnectionHandler extends EventEmitter {
   /**
    * Type-safe event emitter methods
    */
-  on<K extends keyof ConnectionEvents>(
-    event: K,
-    listener: ConnectionEvents[K]
-  ): this {
+  on<K extends keyof ConnectionEvents>(event: K, listener: ConnectionEvents[K]): this {
     return super.on(event, listener);
   }
 

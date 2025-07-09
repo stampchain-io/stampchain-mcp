@@ -14,40 +14,50 @@ export const ServerConfigSchema = z.object({
   // Server settings
   name: z.string().default('stampchain-mcp'),
   version: z.string().default('0.1.0'),
-  
+
   // Logging configuration
-  logging: z.object({
-    level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    enableTimestamps: z.boolean().default(true),
-    enableColors: z.boolean().default(true),
-  }).default({}),
-  
+  logging: z
+    .object({
+      level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+      enableTimestamps: z.boolean().default(true),
+      enableColors: z.boolean().default(true),
+    })
+    .default({}),
+
   // API configuration
-  api: z.object({
-    baseUrl: z.string().url().default('https://stampchain.io/api'),
-    timeout: z.number().positive().default(30000),
-    retries: z.number().min(0).max(10).default(3),
-    retryDelay: z.number().positive().default(1000),
-  }).default({}),
-  
+  api: z
+    .object({
+      baseUrl: z.string().url().default('https://stampchain.io/api'),
+      timeout: z.number().positive().default(30000),
+      retries: z.number().min(0).max(10).default(3),
+      retryDelay: z.number().positive().default(1000),
+    })
+    .default({}),
+
   // Tool registry configuration
-  registry: z.object({
-    maxTools: z.number().positive().default(1000),
-    validateOnRegister: z.boolean().default(true),
-    allowDuplicateNames: z.boolean().default(false),
-  }).default({}),
-  
+  registry: z
+    .object({
+      maxTools: z.number().positive().default(1000),
+      validateOnRegister: z.boolean().default(true),
+      allowDuplicateNames: z.boolean().default(false),
+    })
+    .default({}),
+
   // Performance settings
-  performance: z.object({
-    requestTimeout: z.number().positive().default(120000), // 2 minutes
-    maxConcurrentRequests: z.number().positive().default(10),
-  }).default({}),
-  
+  performance: z
+    .object({
+      requestTimeout: z.number().positive().default(120000), // 2 minutes
+      maxConcurrentRequests: z.number().positive().default(10),
+    })
+    .default({}),
+
   // Development settings
-  development: z.object({
-    enableDebugLogs: z.boolean().default(false),
-    enableStackTraces: z.boolean().default(false),
-  }).default({}),
+  development: z
+    .object({
+      enableDebugLogs: z.boolean().default(false),
+      enableStackTraces: z.boolean().default(false),
+    })
+    .default({}),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;
@@ -118,10 +128,16 @@ export class ConfigLoader {
         throw new Error('Configuration validation failed');
       }
     } catch (error) {
-      if (error instanceof Error && (error.message === 'Failed to parse configuration file' || error.message === 'Configuration validation failed')) {
+      if (
+        error instanceof Error &&
+        (error.message === 'Failed to parse configuration file' ||
+          error.message === 'Configuration validation failed')
+      ) {
         throw error;
       }
-      throw new Error(`Failed to load config from ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to load config from ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return this;
@@ -136,17 +152,17 @@ export class ConfigLoader {
       if (value !== undefined) {
         try {
           const tempConfig: any = {};
-          
+
           if (typeof configPath === 'function') {
             Object.assign(tempConfig, configPath(value));
           } else {
             this.setNestedValue(tempConfig, configPath, this.parseEnvValue(value));
           }
-          
+
           // Try to merge and validate
           const mergedConfig = deepMerge(this.config, tempConfig);
           const testConfig = ServerConfigSchema.parse(mergedConfig);
-          
+
           // If validation passes, update the config
           this.config = testConfig;
         } catch {
@@ -171,10 +187,10 @@ export class ConfigLoader {
 
     if (args.debug) {
       cliConfig.logging = { ...cliConfig.logging, level: 'debug' };
-      cliConfig.development = { 
-        ...this.config.development, 
+      cliConfig.development = {
+        ...this.config.development,
         enableDebugLogs: true,
-        enableStackTraces: true 
+        enableStackTraces: true,
       };
     }
 
@@ -214,12 +230,12 @@ export class ConfigLoader {
       if (error instanceof z.ZodError) {
         return {
           valid: false,
-          errors: error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`)
+          errors: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
         };
       }
       return {
         valid: false,
-        errors: [error instanceof Error ? error.message : 'Unknown validation error']
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
       };
     }
   }
@@ -283,10 +299,12 @@ export class ConfigLoader {
 /**
  * Create and load configuration from all sources
  */
-export function loadConfiguration(options: {
-  configFile?: string;
-  cliArgs?: any;
-} = {}): ServerConfig {
+export function loadConfiguration(
+  options: {
+    configFile?: string;
+    cliArgs?: any;
+  } = {}
+): ServerConfig {
   const loader = new ConfigLoader();
 
   // Load from environment variables
@@ -338,14 +356,14 @@ export function mergeConfigs(...configs: any[]): any {
   const merged = configs.reduce((acc, config) => {
     return deepMerge(acc, config);
   }, {});
-  
+
   // Only validate if it looks like a complete server config
   // (has required fields like name and version)
   const isServerConfig = merged.name && merged.version;
   if (isServerConfig) {
     return ServerConfigSchema.parse(merged);
   }
-  
+
   return merged;
 }
 
@@ -354,9 +372,9 @@ export function mergeConfigs(...configs: any[]): any {
  */
 function deepMerge(target: any, source: any): any {
   if (!source) return target;
-  
+
   const result = { ...target };
-  
+
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
@@ -366,6 +384,6 @@ function deepMerge(target: any, source: any): any {
       }
     }
   }
-  
+
   return result;
 }

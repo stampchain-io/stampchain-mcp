@@ -5,7 +5,12 @@
 import { vi, expect } from 'vitest';
 import { StampchainClient } from '../../api/stampchain-client.js';
 import { createLogger } from '../../utils/index.js';
-import type { Stamp, StampListResponse, CollectionResponse, TokenResponse } from '../../api/types.js';
+import type {
+  Stamp,
+  StampListResponse,
+  CollectionResponse,
+  TokenResponse,
+} from '../../api/types.js';
 import type { ServerConfig } from '../../config/index.js';
 
 /**
@@ -99,7 +104,8 @@ export function createMockStamp(overrides: Partial<Stamp> = {}): Stamp {
     ident: 'STAMP' as const,
     stamp_hash: 'GNGxz7X4LYQoG61sLdvE',
     file_hash: 'b60ab2708daec7685f3d412a5e05191a',
-    stamp_base64: 'iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
+    stamp_base64:
+      'iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
     // Legacy fields (required for v2.3 compatibility)
     floorPrice: null,
     floorPriceUSD: null,
@@ -179,7 +185,7 @@ export function createMockRecentSale(overrides: Partial<any> = {}): any {
     block_index: 844755,
     stamp_id: 12345,
     price_btc: 0.001,
-    price_usd: 50.00,
+    price_usd: 50.0,
     timestamp: 1704067200,
     buyer_address: 'bc1qbuyer123456789012345678901234567890',
     dispenser_address: null,
@@ -213,7 +219,7 @@ export function createMockRecentSalesResponse(overrides: Partial<any> = {}): any
 export function createMockStampMarketData(overrides: Partial<any> = {}): any {
   return {
     floorPrice: 0.001,
-    floorPriceUSD: 50.00,
+    floorPriceUSD: 50.0,
     marketCapUSD: 1000000,
     activityLevel: 'HOT' as const,
     lastActivityTime: 1704067200,
@@ -233,7 +239,9 @@ export function createMockStampMarketData(overrides: Partial<any> = {}): any {
 /**
  * Create mock collection data for testing
  */
-export function createMockCollection(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
+export function createMockCollection(
+  overrides: Partial<CollectionResponse> = {}
+): CollectionResponse {
   return {
     collection_id: 'test-collection',
     collection_name: 'Test Collection',
@@ -297,7 +305,7 @@ export function createMockAxiosResponse<T>(data: T, status = 200) {
  * Create a promise that resolves after a delay
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

@@ -9,7 +9,7 @@ export type { ProtocolHandlerOptions } from './handlers.js';
 export { ProtocolManager } from './manager.js';
 export type { ProtocolManagerOptions } from './manager.js';
 
-export { 
+export {
   MiddlewareManager,
   createLoggingMiddleware,
   createRateLimitMiddleware,
@@ -21,8 +21,4 @@ export {
 export type { Middleware, MiddlewareNext } from './middleware.js';
 
 export { ConnectionHandler } from './connection.js';
-export type { 
-  ConnectionInfo, 
-  ConnectionEvents, 
-  ConnectionHandlerOptions 
-} from './connection.js';
+export type { ConnectionInfo, ConnectionEvents, ConnectionHandlerOptions } from './connection.js';

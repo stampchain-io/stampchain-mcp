@@ -25,11 +25,11 @@ export * from './registry.js';
  */
 export function createAllTools(apiClient?: StampchainClient): Record<string, ITool> {
   const client = apiClient || new StampchainClient();
-  
+
   const stamps = createStampTools(client);
   const collections = createCollectionTools(client);
   const tokens = createTokenTools(client);
-  
+
   return {
     ...stamps,
     ...collections,
@@ -49,11 +49,11 @@ export function getAvailableToolNames(): string[] {
     'get_recent_sales',
     'get_market_data',
     'get_stamp_market_data',
-    
+
     // Collection tools
     'get_collection',
     'search_collections',
-    
+
     // Token tools
     'get_token_info',
     'search_tokens',
@@ -67,7 +67,14 @@ export const toolMetadata = {
   stamps: {
     category: 'Bitcoin Stamps',
     description: 'Tools for querying and searching Bitcoin stamps',
-    tools: ['get_stamp', 'search_stamps', 'get_recent_stamps', 'get_recent_sales', 'get_market_data', 'get_stamp_market_data'],
+    tools: [
+      'get_stamp',
+      'search_stamps',
+      'get_recent_stamps',
+      'get_recent_sales',
+      'get_market_data',
+      'get_stamp_market_data',
+    ],
   },
   collections: {
     category: 'Stamp Collections',

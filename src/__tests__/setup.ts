@@ -29,11 +29,11 @@ vi.mock('axios', () => ({
       delete: vi.fn(),
       request: vi.fn(),
       interceptors: {
-        request: { 
+        request: {
           use: vi.fn(),
           eject: vi.fn(),
         },
-        response: { 
+        response: {
           use: vi.fn(),
           eject: vi.fn(),
         },
@@ -45,8 +45,8 @@ vi.mock('axios', () => ({
           post: {},
           put: {},
           delete: {},
-        }
-      }
+        },
+      },
     })),
   },
   AxiosError: class AxiosError extends Error {
