@@ -11,51 +11,58 @@ interface TestRunOptions {
   verbose?: boolean;
   testPattern?: string;
   maxWorkers?: number;
+  ui?: boolean;
 }
 
 /**
- * Run Jest tests with specified options
+ * Run Vitest tests with specified options
  */
 function runTests(options: TestRunOptions = {}): Promise<number> {
   return new Promise((resolve, reject) => {
-    const jestArgs = ['--config', 'jest.config.js'];
+    const vitestArgs: string[] = [];
 
     // Add options
     if (options.watch) {
-      jestArgs.push('--watch');
+      vitestArgs.push('--watch');
+    } else {
+      vitestArgs.push('run');
     }
 
     if (options.coverage) {
-      jestArgs.push('--coverage');
+      vitestArgs.push('--coverage');
     }
 
     if (options.verbose) {
-      jestArgs.push('--verbose');
+      vitestArgs.push('--verbose');
     }
 
     if (options.testPattern) {
-      jestArgs.push('--testNamePattern', options.testPattern);
+      vitestArgs.push('--testNamePattern', options.testPattern);
     }
 
     if (options.maxWorkers) {
-      jestArgs.push('--maxWorkers', options.maxWorkers.toString());
+      vitestArgs.push('--threads', options.maxWorkers.toString());
+    }
+
+    if (options.ui) {
+      vitestArgs.push('--ui');
     }
 
     // Force colors in CI
     if (process.env.CI) {
-      jestArgs.push('--colors');
+      vitestArgs.push('--reporter=verbose');
     }
 
-    console.log('Running tests with Jest...');
-    console.log('Command: npx jest', jestArgs.join(' '));
+    console.log('Running tests with Vitest...');
+    console.log('Command: npx vitest', vitestArgs.join(' '));
 
-    const jest = spawn('npx', ['jest', ...jestArgs], {
+    const vitest = spawn('npx', ['vitest', ...vitestArgs], {
       stdio: 'inherit',
       shell: true,
       cwd: process.cwd(),
     });
 
-    jest.on('close', (code) => {
+    vitest.on('close', (code) => {
       if (code === 0) {
         console.log('✅ All tests passed!');
         resolve(0);
@@ -65,8 +72,8 @@ function runTests(options: TestRunOptions = {}): Promise<number> {
       }
     });
 
-    jest.on('error', (error) => {
-      console.error('❌ Failed to start Jest:', error);
+    vitest.on('error', (error) => {
+      console.error('❌ Failed to start Vitest:', error);
       reject(error);
     });
   });
@@ -104,7 +111,12 @@ function parseArgs(): TestRunOptions {
         break;
 
       case '--max-workers':
+      case '--threads':
         options.maxWorkers = parseInt(args[++i], 10);
+        break;
+
+      case '--ui':
+        options.ui = true;
         break;
 
       case '--help':
@@ -119,7 +131,8 @@ Options:
   --coverage, -c      Generate test coverage report
   --verbose, -v       Show verbose test output
   --pattern, -p       Run tests matching pattern
-  --max-workers       Number of worker processes
+  --threads           Number of worker threads
+  --ui                Open Vitest UI
   --help, -h          Show this help message
 
 Examples:
@@ -127,6 +140,7 @@ Examples:
   npm run test -- --watch        Run tests in watch mode
   npm run test -- --coverage     Run tests with coverage
   npm run test -- --pattern api  Run only API tests
+  npm run test -- --ui           Open Vitest UI
 `);
         process.exit(0);
         break;
