@@ -1,5 +1,13 @@
 # Stampchain MCP Server
 
+[![CI](https://github.com/stampchain-io/stampchain-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/stampchain-io/stampchain-mcp/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/stampchain-mcp.svg)](https://badge.fury.io/js/stampchain-mcp)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-blue.svg)](https://modelcontextprotocol.io/)
+[![Stampchain API](https://img.shields.io/badge/API-v2.3-orange.svg)](https://stampchain.io/api)
+
 A Model Context Protocol (MCP) server for interacting with Bitcoin Stamps and
 SRC-20 token data via the Stampchain API. This server provides MCP-compatible
 clients with tools to query Bitcoin Stamps, collections, and SRC-20 tokens.
@@ -11,8 +19,20 @@ clients with tools to query Bitcoin Stamps, collections, and SRC-20 tokens.
 - **Stamp Collections**: Query collections and search through collection data
 - **SRC-20 Tokens**: Get token information and search through SRC-20 tokens
 - **Type-safe**: Built with TypeScript and Zod validation
-- **Comprehensive Testing**: Unit, integration, and API tests
+- **Comprehensive Testing**: Unit, integration, and API tests with 182+ test cases
 - **Configurable**: Flexible configuration options for different environments
+- **Cross-platform**: Tested on Ubuntu, Windows, and macOS with Node.js 18+
+
+## Test Coverage
+
+This project maintains comprehensive test coverage across multiple areas:
+
+- ✅ **182+ Test Cases** - Unit, integration, and API validation tests
+- ✅ **Schema Validation** - Ensures v2.3 API compatibility
+- ✅ **Cross-platform** - Tested on Ubuntu, Windows, and macOS
+- ✅ **Multi-version** - Node.js 18.x, 20.x, and 22.x support
+- ✅ **Real API Testing** - Validates against live Stampchain API v2.3
+- ✅ **Type Safety** - Full TypeScript strict mode compliance
 
 ## Quick Start
 
@@ -164,30 +184,37 @@ npm run version
 
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build the TypeScript project
-- `npm run test` - Run all tests
+- `npm run test` - Run all tests (182+ test cases)
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
-- `npm run lint` - Run ESLint
+- `npm run test:ci` - Run tests for CI with coverage
+- `npm run typecheck` - TypeScript type checking
 - `npm run format` - Format code with Prettier
+- `npm run validate` - Full validation (schema + typecheck + format + tests)
 
 ### Testing
 
-The project includes comprehensive tests:
+The project includes comprehensive tests with 182+ test cases:
 
 ```bash
-# Run all tests
+# Run all tests (182+ test cases)
 npm test
 
 # Run specific test suites
-npm run test:unit
-npm run test:integration
-npm run test:api
+npm run test:unit         # Unit tests for utilities and helpers
+npm run test:integration  # Integration tests for MCP server
+npm run test:api         # API validation tests (v2.3 compatibility)
+npm run test:tools       # Tool functionality tests
+npm run test:schemas     # Schema validation tests
 
 # Run with coverage
 npm run test:coverage
 
-# Run tests in UI mode
+# Run tests in UI mode (interactive)
 npm run test:ui
+
+# CI test run (includes coverage)
+npm run test:ci
 ```
 
 ### Project Structure
