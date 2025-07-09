@@ -65,6 +65,7 @@ export function getAvailableToolNames(): string[] {
     // Analysis tools
     'analyze_stamp_code',
     'get_stamp_dependencies',
+    'analyze_stamp_patterns',
   ];
 }
 
@@ -97,6 +98,6 @@ export const toolMetadata = {
   analysis: {
     category: 'Recursive Stamp Analysis',
     description: 'Tools for analyzing recursive stamp code structure and dependencies',
-    tools: ['analyze_stamp_code', 'get_stamp_dependencies'],
+    tools: ['analyze_stamp_code', 'get_stamp_dependencies', 'analyze_stamp_patterns'],
   },
 };

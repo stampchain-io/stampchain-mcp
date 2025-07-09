@@ -126,8 +126,8 @@ describe('MCP Server Integration', () => {
     it('should initialize with all expected tools', () => {
       const stats = toolRegistry.getStats();
 
-      expect(stats.totalTools).toBe(12); // All 12 tools should be registered (10 original + 2 analysis tools)
-      expect(stats.enabledTools).toBe(12);
+      expect(stats.totalTools).toBe(13); // All 13 tools should be registered (10 original + 3 analysis tools)
+      expect(stats.enabledTools).toBe(13);
       expect(stats.categories).toBe(4); // stamps, collections, tokens, analysis
     });
 
@@ -163,7 +163,7 @@ describe('MCP Server Integration', () => {
       // Get tools from registry
       const mcpTools = toolRegistry.getMCPTools();
 
-      expect(mcpTools).toHaveLength(12);
+      expect(mcpTools).toHaveLength(13);
       expect(mcpTools.every((tool) => tool.name && tool.description && tool.inputSchema)).toBe(
         true
       );

@@ -16,10 +16,14 @@ import type { Stamp } from '../api/types.js';
 import {
   AnalyzeStampCodeParamsSchema,
   GetStampDependenciesParamsSchema,
+  AnalyzeStampPatternsParamsSchema,
   type AnalyzeStampCodeParams,
   type GetStampDependenciesParams,
+  type AnalyzeStampPatternsParams,
   type StampAnalysisResult,
   type StampDependency,
+  type StampPatternAnalysisResult,
+  type PatternUsageStats,
 } from '../schemas/recursive-stamps.js';
 
 const logger = createLogger('StampAnalysisTool');
@@ -944,11 +948,828 @@ export class GetStampDependenciesTool extends BaseTool<
 }
 
 /**
+ * Tool for analyzing patterns across multiple stamps to identify common libraries and techniques
+ */
+export class AnalyzeStampPatternsTool extends BaseTool<
+  z.input<typeof AnalyzeStampPatternsParamsSchema>,
+  AnalyzeStampPatternsParams
+> {
+  public readonly name = 'analyze_stamp_patterns';
+  public readonly schema = AnalyzeStampPatternsParamsSchema;
+
+  public readonly description =
+    'Analyze patterns across multiple recursive stamps to identify common libraries, frameworks, and coding techniques used in the ecosystem';
+
+  public readonly inputSchema: MCPTool['inputSchema'] = {
+    type: 'object',
+    properties: {
+      sample_size: {
+        type: 'number',
+        description: 'Number of stamps to analyze for patterns',
+        default: 1000,
+        minimum: 1,
+        maximum: 10000,
+      },
+      pattern_types: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: [
+            'frameworks',
+            'loading_strategies',
+            'error_handling',
+            'composition_patterns',
+            'optimization_techniques',
+            'all',
+          ],
+        },
+        description: 'Types of patterns to analyze',
+        default: ['all'],
+      },
+      complexity_analysis: {
+        type: 'boolean',
+        description: 'Include complexity analysis for discovered patterns',
+        default: true,
+      },
+      min_occurrences: {
+        type: 'number',
+        description: 'Minimum number of occurrences to consider a pattern',
+        default: 3,
+        minimum: 2,
+        maximum: 100,
+      },
+      include_examples: {
+        type: 'boolean',
+        description: 'Include code examples for each pattern',
+        default: true,
+      },
+      sort_by: {
+        type: 'string',
+        enum: ['frequency', 'complexity', 'alphabetical'],
+        description: 'How to sort the results',
+        default: 'frequency',
+      },
+    },
+    required: [],
+  };
+
+  constructor(apiClient?: StampchainClient) {
+    super();
+    this.apiClient = apiClient;
+  }
+
+  private apiClient?: StampchainClient;
+
+  protected validateInput(
+    input: z.input<typeof AnalyzeStampPatternsParamsSchema>
+  ): AnalyzeStampPatternsParams {
+    return AnalyzeStampPatternsParamsSchema.parse(input);
+  }
+
+  public async execute(
+    params: AnalyzeStampPatternsParams,
+    context?: ToolContext
+  ): Promise<ToolResponse> {
+    const logger = createLogger('AnalyzeStampPatternsTool');
+    const startTime = Date.now();
+
+    try {
+      logger.info('Starting stamp pattern analysis', {
+        sampleSize: params.sample_size,
+        patternTypes: params.pattern_types,
+        minOccurrences: params.min_occurrences,
+      });
+
+      // Initialize API client
+      const apiClient = this.apiClient || new StampchainClient();
+
+      // Get sample of stamps to analyze
+      const stamps = await this.getSampleStamps(apiClient, params.sample_size, logger);
+      logger.info(`Retrieved ${stamps.length} stamps for analysis`);
+
+      // Analyze patterns across the stamps
+      const patternAnalysis = await this.analyzePatterns(stamps, params, logger);
+
+      // Generate recommendations based on patterns
+      const recommendations = this.generateRecommendations(patternAnalysis.discovered_patterns);
+
+      // Calculate trending patterns
+      const trendingPatterns = this.calculateTrendingPatterns(patternAnalysis.discovered_patterns);
+
+      // Build final result
+      const result: StampPatternAnalysisResult = {
+        analysis_metadata: {
+          total_stamps_analyzed: stamps.length,
+          analysis_date: new Date().toISOString(),
+          pattern_types_analyzed: params.pattern_types,
+          min_occurrences_threshold: params.min_occurrences,
+          analysis_duration_ms: Date.now() - startTime,
+        },
+        discovered_patterns: patternAnalysis.discovered_patterns,
+        pattern_categories: patternAnalysis.pattern_categories,
+        trending_patterns: trendingPatterns,
+        recommendations: recommendations,
+        statistics: patternAnalysis.statistics,
+      };
+
+      logger.info('Pattern analysis completed', {
+        patternsFound: result.statistics.total_patterns_found,
+        categoriesAnalyzed: result.pattern_categories.length,
+        duration: result.analysis_metadata.analysis_duration_ms,
+      });
+
+      return multiResponse(
+        { type: 'text', text: this.formatPatternAnalysisReport(result) },
+        { type: 'text', text: JSON.stringify(result, null, 2) }
+      );
+    } catch (error) {
+      logger.error('Pattern analysis failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ToolExecutionError(
+        `Failed to analyze stamp patterns: ${error instanceof Error ? error.message : String(error)}`,
+        'PATTERN_ANALYSIS_ERROR',
+        { originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Get a sample of stamps for pattern analysis
+   */
+  private async getSampleStamps(
+    apiClient: StampchainClient,
+    sampleSize: number,
+    logger: any
+  ): Promise<any[]> {
+    try {
+      // Get recent stamps with pagination
+      const stamps: any[] = [];
+      let page = 1;
+      const pageSize = Math.min(sampleSize, 100); // Use smaller page size
+
+      while (stamps.length < sampleSize) {
+        const response = await apiClient.searchStamps({
+          page,
+          limit: Math.min(pageSize, sampleSize - stamps.length),
+          sort_order: 'DESC',
+        });
+
+        if (!response || response.length === 0) {
+          break;
+        }
+
+        stamps.push(...response);
+        page++;
+
+        // Avoid infinite loops
+        if (page > 100) {
+          logger.warn('Reached maximum page limit while collecting stamps');
+          break;
+        }
+      }
+
+      return stamps.slice(0, sampleSize);
+    } catch (error) {
+      logger.error('Failed to retrieve stamps for analysis', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze patterns across the stamp collection
+   */
+  private async analyzePatterns(
+    stamps: any[],
+    params: AnalyzeStampPatternsParams,
+    logger: any
+  ): Promise<{
+    discovered_patterns: PatternUsageStats[];
+    pattern_categories: Array<{
+      category: string;
+      pattern_count: number;
+      total_occurrences: number;
+      average_complexity: number;
+    }>;
+    statistics: {
+      total_patterns_found: number;
+      most_common_pattern: string;
+      average_pattern_complexity: number;
+      patterns_by_category: Record<string, number>;
+    };
+  }> {
+    const patternMap = new Map<string, PatternUsageStats>();
+    const parser = new RecursiveStampParser();
+
+    logger.info('Analyzing patterns across stamps', { totalStamps: stamps.length });
+
+    for (const stamp of stamps) {
+      try {
+        // Skip if no stamp content
+        if (!stamp.stamp_base64) {
+          continue;
+        }
+
+        // Decode and analyze the stamp content
+        const content = Buffer.from(stamp.stamp_base64, 'base64').toString('utf-8');
+
+        // Detect patterns in this stamp
+        const detectedPatterns = await this.detectPatternsInStamp(content, stamp, parser, params);
+
+        // Update pattern statistics
+        for (const pattern of detectedPatterns) {
+          const existing = patternMap.get(pattern.pattern_id);
+          if (existing) {
+            existing.occurrences++;
+            existing.examples.push({
+              stamp_id: stamp.stamp,
+              cpid: stamp.cpid || `A${stamp.stamp}`,
+              code_snippet: pattern.code_snippet,
+              variation_notes: pattern.variation_notes,
+            });
+            existing.last_seen = new Date().toISOString();
+          } else {
+            patternMap.set(pattern.pattern_id, {
+              pattern_id: pattern.pattern_id,
+              pattern_name: pattern.pattern_name,
+              description: pattern.description,
+              category: pattern.category,
+              occurrences: 1,
+              frequency_percentage: 0, // Will calculate later
+              complexity_score: pattern.complexity_score,
+              first_seen: new Date().toISOString(),
+              last_seen: new Date().toISOString(),
+              examples: [
+                {
+                  stamp_id: stamp.stamp,
+                  cpid: stamp.cpid || `A${stamp.stamp}`,
+                  code_snippet: pattern.code_snippet,
+                  variation_notes: pattern.variation_notes,
+                },
+              ],
+              variations: [],
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to analyze stamp for patterns', {
+          stampId: stamp.stamp,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        continue;
+      }
+    }
+
+    // Filter patterns by minimum occurrences
+    const filteredPatterns = Array.from(patternMap.values()).filter(
+      (pattern) => pattern.occurrences >= params.min_occurrences
+    );
+
+    // Calculate frequency percentages
+    const totalStamps = stamps.length;
+    filteredPatterns.forEach((pattern) => {
+      pattern.frequency_percentage = (pattern.occurrences / totalStamps) * 100;
+    });
+
+    // Sort patterns
+    this.sortPatterns(filteredPatterns, params.sort_by);
+
+    // Limit examples if requested
+    if (!params.include_examples) {
+      filteredPatterns.forEach((pattern) => {
+        pattern.examples = [];
+      });
+    } else {
+      // Limit to top 5 examples per pattern
+      filteredPatterns.forEach((pattern) => {
+        pattern.examples = pattern.examples.slice(0, 5);
+      });
+    }
+
+    // Calculate category statistics
+    const categoryStats = this.calculateCategoryStats(filteredPatterns);
+
+    // Calculate overall statistics
+    const statistics = this.calculateOverallStats(filteredPatterns);
+
+    return {
+      discovered_patterns: filteredPatterns,
+      pattern_categories: categoryStats,
+      statistics,
+    };
+  }
+
+  /**
+   * Detect patterns in a single stamp
+   */
+  private async detectPatternsInStamp(
+    content: string,
+    stamp: any,
+    parser: RecursiveStampParser,
+    params: AnalyzeStampPatternsParams
+  ): Promise<
+    Array<{
+      pattern_id: string;
+      pattern_name: string;
+      description: string;
+      category: string;
+      complexity_score: number;
+      code_snippet: string;
+      variation_notes?: string;
+    }>
+  > {
+    const patterns: Array<{
+      pattern_id: string;
+      pattern_name: string;
+      description: string;
+      category: string;
+      complexity_score: number;
+      code_snippet: string;
+      variation_notes?: string;
+    }> = [];
+
+    const shouldAnalyze = (
+      category:
+        | 'frameworks'
+        | 'loading_strategies'
+        | 'error_handling'
+        | 'composition_patterns'
+        | 'optimization_techniques'
+    ) => params.pattern_types.includes('all') || params.pattern_types.includes(category);
+
+    // Framework detection
+    if (shouldAnalyze('frameworks')) {
+      if (content.includes('Append') && content.includes('t.js(') && content.includes('t.html(')) {
+        patterns.push({
+          pattern_id: 'append_framework',
+          pattern_name: 'Append Framework',
+          description: 'Uses the Append framework for modular stamp composition',
+          category: 'frameworks',
+          complexity_score: 6,
+          code_snippet: this.extractCodeSnippet(content, 'Append'),
+        });
+      }
+
+      if (content.includes('React') || content.includes('createElement')) {
+        patterns.push({
+          pattern_id: 'react_framework',
+          pattern_name: 'React Framework',
+          description: 'Uses React for component-based UI development',
+          category: 'frameworks',
+          complexity_score: 8,
+          code_snippet: this.extractCodeSnippet(content, 'React'),
+        });
+      }
+
+      if (content.includes('Vue') || content.includes('createApp')) {
+        patterns.push({
+          pattern_id: 'vue_framework',
+          pattern_name: 'Vue Framework',
+          description: 'Uses Vue.js for reactive UI development',
+          category: 'frameworks',
+          complexity_score: 7,
+          code_snippet: this.extractCodeSnippet(content, 'Vue'),
+        });
+      }
+    }
+
+    // Loading strategy detection
+    if (shouldAnalyze('loading_strategies')) {
+      if (content.includes('/s/') && content.includes('script')) {
+        patterns.push({
+          pattern_id: 'dynamic_script_loading',
+          pattern_name: 'Dynamic Script Loading',
+          description: 'Dynamically loads JavaScript from other stamps',
+          category: 'loading_strategies',
+          complexity_score: 5,
+          code_snippet: this.extractCodeSnippet(content, '/s/'),
+        });
+      }
+
+      if (content.includes('async') && content.includes('await')) {
+        patterns.push({
+          pattern_id: 'async_loading',
+          pattern_name: 'Asynchronous Loading',
+          description: 'Uses async/await for non-blocking resource loading',
+          category: 'loading_strategies',
+          complexity_score: 4,
+          code_snippet: this.extractCodeSnippet(content, 'async'),
+        });
+      }
+
+      if (
+        content.includes('Promise') &&
+        (content.includes('.then(') || content.includes('.catch('))
+      ) {
+        patterns.push({
+          pattern_id: 'promise_based_loading',
+          pattern_name: 'Promise-based Loading',
+          description: 'Uses Promises for asynchronous resource management',
+          category: 'loading_strategies',
+          complexity_score: 5,
+          code_snippet: this.extractCodeSnippet(content, 'Promise'),
+        });
+      }
+    }
+
+    // Error handling detection
+    if (shouldAnalyze('error_handling')) {
+      if (content.includes('try') && content.includes('catch')) {
+        patterns.push({
+          pattern_id: 'try_catch_error_handling',
+          pattern_name: 'Try-Catch Error Handling',
+          description: 'Uses try-catch blocks for error management',
+          category: 'error_handling',
+          complexity_score: 3,
+          code_snippet: this.extractCodeSnippet(content, 'try'),
+        });
+      }
+
+      if (content.includes('.error(') || content.includes('console.error')) {
+        patterns.push({
+          pattern_id: 'console_error_logging',
+          pattern_name: 'Console Error Logging',
+          description: 'Logs errors to console for debugging',
+          category: 'error_handling',
+          complexity_score: 2,
+          code_snippet: this.extractCodeSnippet(content, 'error'),
+        });
+      }
+
+      if (content.includes('onerror') || content.includes("addEventListener('error'")) {
+        patterns.push({
+          pattern_id: 'global_error_handling',
+          pattern_name: 'Global Error Handling',
+          description: 'Implements global error handlers',
+          category: 'error_handling',
+          complexity_score: 4,
+          code_snippet: this.extractCodeSnippet(content, 'onerror'),
+        });
+      }
+    }
+
+    // Composition patterns
+    if (shouldAnalyze('composition_patterns')) {
+      const cpidMatches = content.match(/A\d{19}/g);
+      if (cpidMatches && cpidMatches.length > 1) {
+        patterns.push({
+          pattern_id: 'multi_stamp_composition',
+          pattern_name: 'Multi-Stamp Composition',
+          description: 'Composes multiple stamps into a single artwork',
+          category: 'composition_patterns',
+          complexity_score: 7,
+          code_snippet: this.extractCodeSnippet(content, cpidMatches[0]),
+          variation_notes: `References ${cpidMatches.length} other stamps`,
+        });
+      }
+
+      if (content.includes('createElement') && content.includes('appendChild')) {
+        patterns.push({
+          pattern_id: 'dom_manipulation',
+          pattern_name: 'DOM Manipulation',
+          description: 'Dynamically creates and modifies DOM elements',
+          category: 'composition_patterns',
+          complexity_score: 5,
+          code_snippet: this.extractCodeSnippet(content, 'createElement'),
+        });
+      }
+
+      if (content.includes('innerHTML') || content.includes('textContent')) {
+        patterns.push({
+          pattern_id: 'content_injection',
+          pattern_name: 'Content Injection',
+          description: 'Injects content into existing DOM elements',
+          category: 'composition_patterns',
+          complexity_score: 3,
+          code_snippet: this.extractCodeSnippet(content, 'innerHTML'),
+        });
+      }
+    }
+
+    // Optimization techniques
+    if (shouldAnalyze('optimization_techniques')) {
+      if (content.includes('requestAnimationFrame')) {
+        patterns.push({
+          pattern_id: 'animation_frame_optimization',
+          pattern_name: 'Animation Frame Optimization',
+          description: 'Uses requestAnimationFrame for smooth animations',
+          category: 'optimization_techniques',
+          complexity_score: 6,
+          code_snippet: this.extractCodeSnippet(content, 'requestAnimationFrame'),
+        });
+      }
+
+      if (content.includes('debounce') || content.includes('throttle')) {
+        patterns.push({
+          pattern_id: 'performance_throttling',
+          pattern_name: 'Performance Throttling',
+          description: 'Uses debouncing or throttling for performance optimization',
+          category: 'optimization_techniques',
+          complexity_score: 5,
+          code_snippet: this.extractCodeSnippet(content, 'debounce'),
+        });
+      }
+
+      if (content.includes('lazy') || content.includes('defer')) {
+        patterns.push({
+          pattern_id: 'lazy_loading',
+          pattern_name: 'Lazy Loading',
+          description: 'Implements lazy loading for better performance',
+          category: 'optimization_techniques',
+          complexity_score: 4,
+          code_snippet: this.extractCodeSnippet(content, 'lazy'),
+        });
+      }
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Extract a relevant code snippet around a keyword
+   */
+  private extractCodeSnippet(content: string, keyword: string, maxLength: number = 200): string {
+    const index = content.indexOf(keyword);
+    if (index === -1) return '';
+
+    const start = Math.max(0, index - 50);
+    const end = Math.min(content.length, index + maxLength);
+    const snippet = content.substring(start, end);
+
+    return snippet.trim();
+  }
+
+  /**
+   * Sort patterns according to the specified criteria
+   */
+  private sortPatterns(patterns: PatternUsageStats[], sortBy: string): void {
+    switch (sortBy) {
+      case 'frequency':
+        patterns.sort((a, b) => b.occurrences - a.occurrences);
+        break;
+      case 'complexity':
+        patterns.sort((a, b) => b.complexity_score - a.complexity_score);
+        break;
+      case 'alphabetical':
+        patterns.sort((a, b) => a.pattern_name.localeCompare(b.pattern_name));
+        break;
+    }
+  }
+
+  /**
+   * Calculate category statistics
+   */
+  private calculateCategoryStats(patterns: PatternUsageStats[]): Array<{
+    category: string;
+    pattern_count: number;
+    total_occurrences: number;
+    average_complexity: number;
+  }> {
+    const categoryMap = new Map<
+      string,
+      { patterns: PatternUsageStats[]; totalOccurrences: number }
+    >();
+
+    for (const pattern of patterns) {
+      if (!categoryMap.has(pattern.category)) {
+        categoryMap.set(pattern.category, { patterns: [], totalOccurrences: 0 });
+      }
+      const categoryData = categoryMap.get(pattern.category)!;
+      categoryData.patterns.push(pattern);
+      categoryData.totalOccurrences += pattern.occurrences;
+    }
+
+    return Array.from(categoryMap.entries()).map(([category, data]) => ({
+      category,
+      pattern_count: data.patterns.length,
+      total_occurrences: data.totalOccurrences,
+      average_complexity:
+        data.patterns.reduce((sum, p) => sum + p.complexity_score, 0) / data.patterns.length,
+    }));
+  }
+
+  /**
+   * Calculate overall statistics
+   */
+  private calculateOverallStats(patterns: PatternUsageStats[]): {
+    total_patterns_found: number;
+    most_common_pattern: string;
+    average_pattern_complexity: number;
+    patterns_by_category: Record<string, number>;
+  } {
+    const mostCommon = patterns.length > 0 ? patterns[0] : null;
+    const avgComplexity =
+      patterns.length > 0
+        ? patterns.reduce((sum, p) => sum + p.complexity_score, 0) / patterns.length
+        : 0;
+
+    const patternsByCategory: Record<string, number> = {};
+    for (const pattern of patterns) {
+      patternsByCategory[pattern.category] = (patternsByCategory[pattern.category] || 0) + 1;
+    }
+
+    return {
+      total_patterns_found: patterns.length,
+      most_common_pattern: mostCommon?.pattern_name || 'None',
+      average_pattern_complexity: avgComplexity,
+      patterns_by_category: patternsByCategory,
+    };
+  }
+
+  /**
+   * Generate recommendations based on discovered patterns
+   */
+  private generateRecommendations(patterns: PatternUsageStats[]): Array<{
+    type: 'beginner_friendly' | 'advanced' | 'performance' | 'security';
+    pattern_id: string;
+    reason: string;
+    difficulty_level: number;
+  }> {
+    const recommendations: Array<{
+      type: 'beginner_friendly' | 'advanced' | 'performance' | 'security';
+      pattern_id: string;
+      reason: string;
+      difficulty_level: number;
+    }> = [];
+
+    for (const pattern of patterns) {
+      // Beginner-friendly patterns
+      if (pattern.complexity_score <= 3 && pattern.frequency_percentage > 10) {
+        recommendations.push({
+          type: 'beginner_friendly',
+          pattern_id: pattern.pattern_id,
+          reason: `Common pattern with low complexity (${pattern.complexity_score}/10) used in ${pattern.frequency_percentage.toFixed(1)}% of stamps`,
+          difficulty_level: pattern.complexity_score,
+        });
+      }
+
+      // Advanced patterns
+      if (pattern.complexity_score >= 7) {
+        recommendations.push({
+          type: 'advanced',
+          pattern_id: pattern.pattern_id,
+          reason: `High complexity pattern (${pattern.complexity_score}/10) for experienced developers`,
+          difficulty_level: pattern.complexity_score,
+        });
+      }
+
+      // Performance patterns
+      if (pattern.category === 'optimization_techniques') {
+        recommendations.push({
+          type: 'performance',
+          pattern_id: pattern.pattern_id,
+          reason: 'Optimization technique that can improve stamp performance',
+          difficulty_level: pattern.complexity_score,
+        });
+      }
+
+      // Security patterns
+      if (pattern.category === 'error_handling') {
+        recommendations.push({
+          type: 'security',
+          pattern_id: pattern.pattern_id,
+          reason: 'Error handling pattern that improves stamp reliability and security',
+          difficulty_level: pattern.complexity_score,
+        });
+      }
+    }
+
+    return recommendations.slice(0, 10); // Limit to top 10 recommendations
+  }
+
+  /**
+   * Calculate trending patterns (simplified version)
+   */
+  private calculateTrendingPatterns(patterns: PatternUsageStats[]): Array<{
+    pattern_id: string;
+    growth_rate: number;
+    recent_adoptions: number;
+  }> {
+    // For now, return patterns with high frequency as "trending"
+    // In a real implementation, this would analyze timestamps and growth rates
+    return patterns
+      .filter((p) => p.frequency_percentage > 5)
+      .slice(0, 5)
+      .map((pattern) => ({
+        pattern_id: pattern.pattern_id,
+        growth_rate: pattern.frequency_percentage, // Simplified
+        recent_adoptions: Math.floor(pattern.occurrences * 0.3), // Simplified
+      }));
+  }
+
+  /**
+   * Format the pattern analysis report for human readability
+   */
+  private formatPatternAnalysisReport(result: StampPatternAnalysisResult): string {
+    const report = [
+      '# Recursive Stamp Pattern Analysis Report',
+      '',
+      `**Analysis Date:** ${result.analysis_metadata.analysis_date}`,
+      `**Stamps Analyzed:** ${result.analysis_metadata.total_stamps_analyzed}`,
+      `**Analysis Duration:** ${result.analysis_metadata.analysis_duration_ms}ms`,
+      `**Pattern Types:** ${result.analysis_metadata.pattern_types_analyzed.join(', ')}`,
+      `**Minimum Occurrences:** ${result.analysis_metadata.min_occurrences_threshold}`,
+      '',
+      '## 📊 Summary Statistics',
+      '',
+      `- **Total Patterns Found:** ${result.statistics.total_patterns_found}`,
+      `- **Most Common Pattern:** ${result.statistics.most_common_pattern}`,
+      `- **Average Complexity:** ${result.statistics.average_pattern_complexity.toFixed(1)}/10`,
+      '',
+      '### Patterns by Category:',
+      ...Object.entries(result.statistics.patterns_by_category).map(
+        ([category, count]) => `- **${category}:** ${count} patterns`
+      ),
+      '',
+      '## 🔍 Discovered Patterns',
+      '',
+    ];
+
+    // Add top patterns
+    const topPatterns = result.discovered_patterns.slice(0, 10);
+    for (const pattern of topPatterns) {
+      report.push(
+        `### ${pattern.pattern_name}`,
+        `**Category:** ${pattern.category}`,
+        `**Occurrences:** ${pattern.occurrences} (${pattern.frequency_percentage.toFixed(1)}%)`,
+        `**Complexity:** ${pattern.complexity_score}/10`,
+        `**Description:** ${pattern.description}`,
+        ''
+      );
+
+      if (pattern.examples.length > 0) {
+        report.push('**Examples:**');
+        for (const example of pattern.examples.slice(0, 2)) {
+          report.push(`- Stamp ${example.cpid}: \`${example.code_snippet.substring(0, 100)}...\``);
+        }
+        report.push('');
+      }
+    }
+
+    // Add category breakdown
+    report.push('## 📈 Category Analysis', '');
+
+    for (const category of result.pattern_categories) {
+      report.push(
+        `### ${category.category}`,
+        `- **Patterns:** ${category.pattern_count}`,
+        `- **Total Occurrences:** ${category.total_occurrences}`,
+        `- **Average Complexity:** ${category.average_complexity.toFixed(1)}/10`,
+        ''
+      );
+    }
+
+    // Add recommendations
+    if (result.recommendations.length > 0) {
+      report.push('## 💡 Recommendations', '');
+
+      const recsByType = result.recommendations.reduce(
+        (acc, rec) => {
+          if (!acc[rec.type]) acc[rec.type] = [];
+          acc[rec.type].push(rec);
+          return acc;
+        },
+        {} as Record<string, typeof result.recommendations>
+      );
+
+      for (const [type, recs] of Object.entries(recsByType)) {
+        report.push(`### ${type.replace('_', ' ').toUpperCase()}`);
+        for (const rec of recs.slice(0, 3)) {
+          const pattern = result.discovered_patterns.find((p) => p.pattern_id === rec.pattern_id);
+          report.push(`- **${pattern?.pattern_name || rec.pattern_id}**: ${rec.reason}`);
+        }
+        report.push('');
+      }
+    }
+
+    // Add trending patterns
+    if (result.trending_patterns.length > 0) {
+      report.push('## 🚀 Trending Patterns', '');
+
+      for (const trending of result.trending_patterns) {
+        const pattern = result.discovered_patterns.find(
+          (p) => p.pattern_id === trending.pattern_id
+        );
+        report.push(
+          `- **${pattern?.pattern_name || trending.pattern_id}**: ${trending.growth_rate.toFixed(1)}% adoption, ${trending.recent_adoptions} recent uses`
+        );
+      }
+      report.push('');
+    }
+
+    return report.join('\n');
+  }
+}
+
+/**
  * Export all stamp analysis tools
  */
 export const stampAnalysisTools = {
   analyze_stamp_code: AnalyzeStampCodeTool,
   get_stamp_dependencies: GetStampDependenciesTool,
+  analyze_stamp_patterns: AnalyzeStampPatternsTool,
 };
 
 /**
@@ -958,5 +1779,6 @@ export function createStampAnalysisTools(apiClient?: StampchainClient) {
   return {
     analyze_stamp_code: new AnalyzeStampCodeTool(apiClient),
     get_stamp_dependencies: new GetStampDependenciesTool(apiClient),
+    analyze_stamp_patterns: new AnalyzeStampPatternsTool(apiClient),
   };
 }
