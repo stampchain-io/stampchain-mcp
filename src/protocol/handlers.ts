@@ -19,6 +19,7 @@ import type { ToolRegistry } from '../tools/registry.js';
 import type { ToolContext } from '../interfaces/tool.js';
 import { createLogger, type Logger } from '../utils/logger.js';
 import { ValidationError, ToolExecutionError } from '../utils/errors.js';
+import { globalPerformanceMonitor } from '../utils/performance-monitor.js';
 import type { ServerConfig } from '../config/index.js';
 import type { StampchainClient } from '../api/stampchain-client.js';
 import { MiddlewareManager, createDefaultMiddleware } from './middleware.js';
@@ -65,6 +66,8 @@ export class ProtocolHandlers {
    * Handle tool listing requests
    */
   handleListTools(_request: ListToolsRequest): Result {
+    const timerId = globalPerformanceMonitor.startTimer('protocol_tools/list');
+    
     this.logger.debug('Handling list tools request');
 
     try {
@@ -75,8 +78,15 @@ export class ProtocolHandlers {
         categories: this.toolRegistry.getCategories(),
       });
 
+      // Record performance metrics
+      globalPerformanceMonitor.recordMetric('tools_listed', tools.length);
+      globalPerformanceMonitor.recordRequestRate('tools/list', 'success');
+      globalPerformanceMonitor.endTimer(timerId, { status: 'success' });
+
       return { tools };
     } catch (error) {
+      globalPerformanceMonitor.recordRequestRate('tools/list', 'error');
+      globalPerformanceMonitor.endTimer(timerId, { status: 'error', errorType: error instanceof Error ? error.constructor.name : 'Unknown' });
       this.logger.error('Failed to list tools', { error });
       throw new McpError(ErrorCode.InternalError, 'Failed to list available tools');
     }
@@ -93,8 +103,9 @@ export class ProtocolHandlers {
       hasArgs: !!args,
     });
 
-    // Start performance timer
+    // Start performance timers
     const performanceKey = `tool_execution_${toolName}`;
+    const protocolTimerId = globalPerformanceMonitor.startTimer('protocol_tools/call', { toolName });
     this.logger.startTimer(performanceKey);
 
     try {
@@ -115,17 +126,34 @@ export class ProtocolHandlers {
         context.logger.setPerformanceLogging(this.config.development.enableDebugLogs);
       }
 
-      // Execute the tool
+      // Execute the tool with performance monitoring
       const startTime = Date.now();
-      const result = await tool.execute(args || {}, context);
+      const result = await globalPerformanceMonitor.monitorToolExecution(
+        toolName,
+        () => tool.execute(args || {}, context),
+        { hasArgs: !!args }
+      );
       const duration = Date.now() - startTime;
 
-      // End performance timer
+      // End performance timers
       this.logger.endTimer(performanceKey, {
         contentItems: result.content.length,
         hasTextContent: result.content.some((item) => item.type === 'text'),
         hasImageContent: result.content.some((item) => item.type === 'image'),
       });
+
+      globalPerformanceMonitor.endTimer(protocolTimerId, {
+        toolName,
+        status: 'success',
+        contentItems: result.content.length.toString(),
+      });
+
+      // Record additional performance metrics
+      globalPerformanceMonitor.recordMetric('tool_content_items', result.content.length, { 
+        toolName,
+        contentItems: result.content.length.toString()
+      });
+      globalPerformanceMonitor.recordRequestRate('tools/call', 'success');
 
       this.logger.info('Tool executed successfully', {
         tool: toolName,
@@ -139,11 +167,20 @@ export class ProtocolHandlers {
 
       return result as unknown as Result;
     } catch (error) {
-      // End performance timer even on error
+      // End performance timers even on error
       this.logger.endTimer(performanceKey, {
         error: true,
         errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       });
+
+      globalPerformanceMonitor.endTimer(protocolTimerId, {
+        toolName,
+        status: 'error',
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+      });
+
+      // Record error metrics
+      globalPerformanceMonitor.recordRequestRate('tools/call', 'error');
 
       this.logger.error('Tool execution failed', {
         tool: toolName,

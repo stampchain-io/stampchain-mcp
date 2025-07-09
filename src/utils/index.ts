@@ -87,3 +87,6 @@ export * from './validators.js';
 
 // Export transformer utilities
 export * from './transformers.js';
+
+// Export performance monitoring utilities
+export * from './performance-monitor.js';

@@ -9,6 +9,7 @@ import { ProtocolManager } from './protocol/index.js';
 import { ToolRegistry } from './tools/registry.js';
 import { StampchainClient } from './api/stampchain-client.js';
 import { createLogger, type Logger } from './utils/logger.js';
+import { globalPerformanceMonitor } from './utils/performance-monitor.js';
 import type { ServerConfig } from './config/index.js';
 import { EventEmitter } from 'events';
 
@@ -172,6 +173,9 @@ export class StampchainServer extends EventEmitter {
       this.isRunning = true;
       this.startTime = new Date();
 
+      // Start performance monitoring intervals
+      this.startPerformanceMonitoring();
+
       this.logger.info('Server started successfully', {
         transport: 'stdio',
         pid: process.pid,
@@ -331,15 +335,56 @@ export class StampchainServer extends EventEmitter {
   }
 
   /**
+   * Start performance monitoring intervals
+   */
+  private startPerformanceMonitoring(): void {
+    // Monitor memory usage every 30 seconds
+    const memoryInterval = setInterval(() => {
+      if (this.isRunning) {
+        globalPerformanceMonitor.recordMemoryUsage();
+      }
+    }, 30000);
+
+    // Monitor CPU usage every 10 seconds
+    const cpuInterval = setInterval(() => {
+      if (this.isRunning) {
+        globalPerformanceMonitor.recordCPUUsage();
+      }
+    }, 10000);
+
+    // Record server uptime every minute
+    const uptimeInterval = setInterval(() => {
+      if (this.isRunning) {
+        globalPerformanceMonitor.recordMetric('server_uptime', this.getUptime());
+      }
+    }, 60000);
+
+    // Clear intervals on server stop
+    this.on('stop', () => {
+      clearInterval(memoryInterval);
+      clearInterval(cpuInterval);
+      clearInterval(uptimeInterval);
+    });
+
+    this.logger.debug('Performance monitoring started', {
+      memoryInterval: '30s',
+      cpuInterval: '10s',
+      uptimeInterval: '60s',
+    });
+  }
+
+  /**
    * Setup internal event handlers
    */
   private setupEventHandlers(): void {
     // Listen to protocol manager events
     this.protocolManager.on('connection', (connectionId) => {
+      globalPerformanceMonitor.recordConnectionMetric('connect');
       this.emit('connection', connectionId);
     });
 
     this.protocolManager.on('disconnection', (connectionId) => {
+      globalPerformanceMonitor.recordConnectionMetric('disconnect');
       this.emit('disconnection', connectionId);
     });
 
